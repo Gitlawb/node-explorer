@@ -39,7 +39,6 @@ interface RepoRowProps {
 
 export function RepoRow({ repo, index }: RepoRowProps) {
   const navigate = useNavigate();
-  const cloneUrl = `gitlawb://did:key:${repo.owner}BcRqTmKpLiiW/${repo.name}`;
 
   return (
     <TableRow
@@ -90,7 +89,7 @@ export function RepoRow({ repo, index }: RepoRowProps) {
       {/* Clone button — hidden on mobile */}
       <TableCell className="hidden md:table-cell px-4 py-[18px]" onClick={e => e.stopPropagation()}>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
-          <CloneButton value={cloneUrl} />
+          <CloneButton value={repo.cloneUrl} />
         </div>
       </TableCell>
     </TableRow>

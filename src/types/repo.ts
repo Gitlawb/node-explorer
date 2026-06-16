@@ -9,10 +9,11 @@ export interface RepoCommit {
   shortHash: string;
   message: string;
   time: string;
+  author?: string;
 }
 
 export interface Repository {
-  id: number;
+  id: string;
   owner: string;
   name: string;
   description: string;
@@ -22,7 +23,8 @@ export interface Repository {
   stars: number;
   visibility: 'public' | 'private';
   isMirror: boolean;
-  drift: { agree: number; total: number };
-  latestCommit: RepoCommit;
+  latestCommit?: RepoCommit;
+  commits: RepoCommit[];
   files: RepoFile[];
+  cloneUrl: string;
 }

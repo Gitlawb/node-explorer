@@ -4,7 +4,7 @@ import { Badge } from '../ui/badge';
 
 interface StatsPanelProps {
   stars: number;
-  latestCommit: RepoCommit;
+  latestCommit?: RepoCommit;
 }
 
 export function StatsPanel({ stars, latestCommit }: StatsPanelProps) {
@@ -36,13 +36,27 @@ export function StatsPanel({ stars, latestCommit }: StatsPanelProps) {
             <p className="text-[11px] uppercase tracking-[0.08em] font-semibold mb-3 text-muted-foreground">
               Latest
             </p>
-            <p
-              className="text-[17px] sm:text-[19px] font-mono font-bold leading-none mb-2"
-              style={{ color: 'var(--color-warm)' }}
-            >
-              {latestCommit.shortHash}
-            </p>
-            <p className="text-[12px] text-muted-foreground">{latestCommit.time}</p>
+            {latestCommit ? (
+              <>
+                <p
+                  className="text-[17px] sm:text-[19px] font-mono font-bold leading-none mb-2"
+                  style={{ color: 'var(--color-warm)' }}
+                >
+                  {latestCommit.shortHash}
+                </p>
+                <p className="text-[12px] text-muted-foreground">{latestCommit.time}</p>
+              </>
+            ) : (
+              <>
+                <p
+                  className="text-[17px] sm:text-[19px] font-mono font-bold leading-none mb-2"
+                  style={{ color: 'var(--color-warm)' }}
+                >
+                  —
+                </p>
+                <p className="text-[12px] text-muted-foreground">no commits</p>
+              </>
+            )}
           </div>
         </div>
       </CardContent>

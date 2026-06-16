@@ -10,6 +10,7 @@ import {
 
 interface FileListProps {
   files: RepoFile[];
+  onClickEntry?: (entry: RepoFile) => void;
 }
 
 function FileIcon({ type }: { type: 'file' | 'dir' }) {
@@ -31,7 +32,7 @@ function FileIcon({ type }: { type: 'file' | 'dir' }) {
   );
 }
 
-export function FileList({ files }: FileListProps) {
+export function FileList({ files, onClickEntry }: FileListProps) {
   if (files.length === 0) {
     return (
       <div className="flex items-center justify-center py-14">
@@ -41,7 +42,7 @@ export function FileList({ files }: FileListProps) {
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border">
+    <div className="rounded-xl overflow-hidden border border-border min-w-0">
       <Table>
         <TableHeader>
           <TableRow className="border-b border-border hover:bg-transparent">
@@ -57,7 +58,8 @@ export function FileList({ files }: FileListProps) {
           {files.map(file => (
             <TableRow
               key={file.name}
-              className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors duration-100 cursor-default"
+              onClick={onClickEntry ? () => onClickEntry(file) : undefined}
+              className={`border-b border-border last:border-0 hover:bg-muted/50 transition-colors duration-100 ${onClickEntry ? 'cursor-pointer' : 'cursor-default'}`}
             >
               <TableCell className="px-4 sm:px-6 py-2.5 sm:py-3">
                 <div className="flex items-center gap-2 sm:gap-3">

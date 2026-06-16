@@ -8,10 +8,10 @@ interface DetailHeaderProps {
 }
 
 export function DetailHeader({ repo }: DetailHeaderProps) {
-  const fullDid = `did:key:${repo.owner}BcRqTmKpLiiW`;
+  const fullDid = `did:key:${repo.owner}`;
 
   return (
-    <div>
+    <div className="min-w-0">
       {/* Title */}
       <h1 className="text-[22px] sm:text-[30px] lg:text-[42px] font-bold tracking-[-0.03em] leading-tight mb-3 text-foreground break-words">
         {repo.owner}/{repo.name}
@@ -36,12 +36,6 @@ export function DetailHeader({ repo }: DetailHeaderProps) {
           className="border-border text-foreground bg-transparent text-[12px] font-medium px-2.5 py-0.5 rounded-md"
         >
           {repo.stars === 1 ? '1 star' : `${repo.stars} stars`}
-        </Badge>
-        <Badge
-          variant="outline"
-          className="border-border text-foreground bg-transparent text-[12px] font-medium px-2.5 py-0.5 rounded-md"
-        >
-          drift {repo.drift.agree}/{repo.drift.total}
         </Badge>
         {repo.isMirror && (
           <Badge

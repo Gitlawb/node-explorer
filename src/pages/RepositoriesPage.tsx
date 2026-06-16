@@ -21,7 +21,7 @@ function SearchIcon() {
 export default function RepositoriesPage() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -33,13 +33,13 @@ export default function RepositoriesPage() {
     navigate(dest, { replace: location.pathname === '/repos' });
   };
 
-  // Reset to page 1 whenever the search query changes
   useEffect(() => { setPage(1); }, [search]);
 
-  const { repos, totalCount, totalPages, windowStart, windowEnd } = useRepositories({
+  const { repos, totalCount, totalPages, windowStart, windowEnd, loading, error } = useRepositories({
     page,
     perPage,
     search,
+    refreshKey,
   });
 
   const handlePerPageChange = (n: number) => {
@@ -48,20 +48,20 @@ export default function RepositoriesPage() {
   };
 
   const handleRefresh = () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 900);
+    if (loading) return;
+    setRefreshKey(k => k + 1);
   };
 
   return (
     <div className="max-w-[1520px] mx-auto px-4 sm:px-8 lg:px-12">
 
       <RepoHero
+        totalCount={totalCount}
         page={page}
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        refreshing={refreshing}
+        refreshing={loading}
         onRefresh={handleRefresh}
       />
 
@@ -70,9 +70,13 @@ export default function RepositoriesPage() {
         {/* Count line */}
         <div className="flex items-center justify-between mb-5 px-1 h-10">
           <span className="text-[13px] text-muted-foreground font-mono tabular-nums">
-            {search
-              ? `${totalCount} ${totalCount === 1 ? 'result' : 'results'}`
-              : `${windowStart}–${windowEnd} of ${totalCount.toLocaleString()}`
+            {loading
+              ? 'Loading…'
+              : error
+                ? <span className="text-red-500">Error: {error}</span>
+                : search
+                  ? `${totalCount} ${totalCount === 1 ? 'result' : 'results'}`
+                  : `${windowStart}–${windowEnd} of ${totalCount.toLocaleString()}`
             }
           </span>
         </div>
@@ -94,10 +98,10 @@ export default function RepositoriesPage() {
         </div>
 
         {/* Table */}
-        <RepoTable repos={repos} loading={refreshing} />
+        <RepoTable repos={repos} loading={loading} />
 
         {/* Pagination */}
-        {!search && (
+        {!search && !loading && !error && (
           <RepoPagination
             page={page}
             totalPages={totalPages}

@@ -1,7 +1,7 @@
 import { cn } from '../../lib/utils';
-import { TOTAL_REPOS } from '../../lib/mock-data';
 
 interface RepoHeroProps {
+  totalCount: number;
   page: number;
   perPage: number;
   windowStart: number;
@@ -45,7 +45,7 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
   );
 }
 
-export function RepoHero({ page, perPage, windowStart, windowEnd, refreshing, onRefresh }: RepoHeroProps) {
+export function RepoHero({ totalCount, page, perPage, windowStart, windowEnd, refreshing, onRefresh }: RepoHeroProps) {
   return (
     <section className="relative pt-6 sm:pt-10 lg:pt-12 pb-0 overflow-hidden">
 
@@ -94,7 +94,7 @@ export function RepoHero({ page, perPage, windowStart, windowEnd, refreshing, on
           className="grid grid-cols-2 sm:grid-cols-4 overflow-hidden rounded-lg border"
           style={{ borderColor: 'var(--color-border)' }}
         >
-          <StatCell label="Total Repos" value={TOTAL_REPOS.toLocaleString()} />
+          <StatCell label="Total Repos" value={totalCount > 0 ? totalCount.toLocaleString() : '—'} />
           <StatCell
             label="Page"
             value={String(page)}
@@ -107,7 +107,7 @@ export function RepoHero({ page, perPage, windowStart, windowEnd, refreshing, on
           />
           <StatCell
             label="Window"
-            value={`${windowStart}–${windowEnd}`}
+            value={totalCount > 0 ? `${windowStart}–${windowEnd}` : '—'}
             className="border-l border-t sm:border-t-0 border-[var(--color-border)]"
           />
         </div>

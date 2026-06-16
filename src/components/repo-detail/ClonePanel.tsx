@@ -3,12 +3,10 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 
 interface ClonePanelProps {
-  owner: string;
-  name: string;
+  cloneUrl: string;
 }
 
-export function ClonePanel({ owner, name }: ClonePanelProps) {
-  const cloneUrl = `gitlawb://did:key:${owner}BcRqTmKpLiiW/${name}`;
+export function ClonePanel({ cloneUrl }: ClonePanelProps) {
   const cloneCommand = `git clone ${cloneUrl}`;
 
   return (
