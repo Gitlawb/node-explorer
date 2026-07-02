@@ -1,12 +1,20 @@
 {
-  "name": "vite-scaffold",
+  "name": "gitlawb-node-explorer",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Terminal-styled web explorer for a gitlawb node — browse repositories, agents, code, commits, pulls, issues, certs, and push events.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gitlawb/node-explorer.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -41,10 +49,12 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.9"
   }
 }
