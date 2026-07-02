@@ -188,15 +188,75 @@ export async function fetchCommits(owner: string, name: string, signal?: AbortSi
   return data.commits ?? [];
 }
 
-export async function fetchBlob(
+export const MAX_INLINE_BYTES = 1_048_576; // 1 MB
+// NOT svg — the blob endpoint serves octet-stream and browsers refuse to
+// render SVG in <img> without an image/svg+xml content-type.
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'];
+
+export function blobUrl(owner: string, name: string, path: string): string {
+  const encoded = path.split('/').map(encodeURIComponent).join('/');
+  return repoPath(owner, name, `/blob/${encoded}`);
+}
+
+export type BlobKind = 'text' | 'image' | 'binary' | 'toolarge';
+
+export interface BlobResult {
+  kind: BlobKind;
+  /** Only set for kind 'text' */
+  content?: string;
+  /** Raw blob URL (same-origin via proxy) — <img> src / raw / download link */
+  url: string;
+  size: number;
+  sizeLabel: string;
+}
+
+/**
+ * Fetch and classify a blob. The node guesses content-type from the file
+ * extension, so classification relies on extension + NUL-byte sniffing only
+ * (mirrors the gitlawb.com web implementation).
+ */
+export async function getBlob(
   owner: string,
   name: string,
   path: string,
-  signal?: AbortSignal,
-): Promise<string> {
-  const res = await fetch(repoPath(owner, name, `/blob/${path}`), { signal });
+  opts: { force?: boolean; signal?: AbortSignal } = {},
+): Promise<BlobResult> {
+  const url = blobUrl(owner, name, path);
+  const res = await fetch(url, { signal: opts.signal });
   if (!res.ok) throw new Error(`Failed to fetch file: ${res.status}`);
-  return res.text();
+
+  const declaredSize = Number(res.headers.get('content-length') ?? '0');
+  const ext = (path.toLowerCase().split('.').pop() ?? '');
+
+  // Image check precedes the size guard: large images still render via <img>.
+  if (IMAGE_EXTENSIONS.includes(ext)) {
+    void res.body?.cancel();
+    return { kind: 'image', url, size: declaredSize, sizeLabel: formatFileSize(declaredSize || null) };
+  }
+
+  if (declaredSize > MAX_INLINE_BYTES && !opts.force) {
+    void res.body?.cancel();
+    return { kind: 'toolarge', url, size: declaredSize, sizeLabel: formatFileSize(declaredSize) };
+  }
+
+  const buf = await res.arrayBuffer();
+  const size = declaredSize || buf.byteLength;
+  if (size > MAX_INLINE_BYTES && !opts.force) {
+    return { kind: 'toolarge', url, size, sizeLabel: formatFileSize(size) };
+  }
+
+  const head = new Uint8Array(buf.slice(0, 8192));
+  if (head.includes(0)) {
+    return { kind: 'binary', url, size, sizeLabel: formatFileSize(size) };
+  }
+
+  return {
+    kind: 'text',
+    content: new TextDecoder('utf-8').decode(buf),
+    url,
+    size,
+    sizeLabel: formatFileSize(size),
+  };
 }
 
 export async function fetchSubtree(

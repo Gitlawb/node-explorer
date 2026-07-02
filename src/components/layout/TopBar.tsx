@@ -8,7 +8,7 @@ export default function TopBar() {
 
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-border backdrop-blur-sm bg-background/95">
-      <div className="mx-auto flex h-full max-w-[1520px] items-center gap-4 px-4 sm:px-8 lg:px-12">
+      <div className="mx-auto flex h-full max-w-[1280px] items-center gap-4 px-4 sm:px-8 lg:px-12">
 
         {/* Left: branding */}
         <Link

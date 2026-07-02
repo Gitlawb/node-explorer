@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { RepoSort } from '../../lib/api';
 import { Pill } from '../ui/Pill';
 import { MicroLabel } from '../ui/MicroLabel';
@@ -39,6 +40,25 @@ export function RepoToolbar({
   searchScope,
   loadedCount,
 }: RepoToolbarProps) {
+  // Local input state: the URL param lags a router transition behind fast
+  // typing, so a URL-controlled input drops keystrokes. Local value is the
+  // source of truth while the input is focused; external changes (back-nav,
+  // deep links) sync in only when it isn't — a stale URL echo of our own
+  // keystrokes can then never clobber newer input.
+  const [value, setValue] = useState(search);
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (prevSearch !== search) {
+    setPrevSearch(search);
+    const inputFocused =
+      typeof document !== 'undefined' && document.activeElement?.id === 'repo-search';
+    if (!inputFocused && search !== value) setValue(search);
+  }
+
+  const handleChange = (v: string) => {
+    setValue(v);
+    onSearchChange(v);
+  };
+
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between mb-4">
 
@@ -50,8 +70,8 @@ export function RepoToolbar({
         <input
           id="repo-search"
           type="search"
-          value={search}
-          onChange={e => onSearchChange(e.target.value)}
+          value={value}
+          onChange={e => handleChange(e.target.value)}
           placeholder="search repos…"
           autoComplete="off"
           spellCheck={false}

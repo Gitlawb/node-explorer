@@ -8,6 +8,11 @@ import { useDebouncedValue } from './useDebouncedValue';
 let agentsCache: ApiAgent[] | null = null;
 let agentsPromise: Promise<ApiAgent[]> | null = null;
 
+/** Read-only view of the session agent cache (e.g. for the command palette). */
+export function getCachedAgents(): ApiAgent[] | null {
+  return agentsCache;
+}
+
 function loadAgents(force = false): Promise<ApiAgent[]> {
   if (force) {
     agentsCache = null;

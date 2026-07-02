@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Repository, RepoFile } from '../../types/repo';
 import { FileList } from './FileList';
 import { FileViewer } from './FileViewer';
@@ -7,10 +8,11 @@ import { IssueList } from './IssueList';
 import { PullList } from './PullList';
 import { EventList } from './EventList';
 import { CertList } from './CertList';
+import { ReadmePanel } from './ReadmePanel';
 import { Pill } from '../ui/Pill';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
-  fetchBlob,
+  getBlob,
   fetchSubtree,
   fetchPulls,
   fetchIssues,
@@ -18,21 +20,9 @@ import {
   fetchCerts,
   mapTreeEntriesToFiles,
 } from '../../lib/api';
-import type { ApiIssue, ApiPull, ApiRepoEvent, ApiCert } from '../../lib/api';
-
-interface DirLevel {
-  label: string;
-  path: string;
-  entries: RepoFile[];
-}
-
-interface OpenFile {
-  name: string;
-  path: string;
-  content: string | null;
-  loading: boolean;
-  error: string | null;
-}
+import type { ApiIssue, ApiPull, ApiRepoEvent, ApiCert, BlobResult } from '../../lib/api';
+import { normalizeRepoPath, isMarkdownPath } from '../../lib/lang';
+import { useShortcut } from '../../hooks/useShortcuts';
 
 type LazyTabId = 'pulls' | 'issues' | 'events' | 'certs';
 
@@ -95,94 +85,110 @@ const TRIGGER_CLS =
   'text-muted-foreground transition-colors whitespace-nowrap hover:text-foreground ' +
   'data-[state=active]:border-warm data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none';
 
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : 'request failed';
+}
+
 interface DetailTabsProps {
   repo: Repository;
   value: string;
   onValueChange: (tab: string) => void;
+  onOpenFinder?: () => void;
 }
 
-export function DetailTabs({ repo, value, onValueChange }: DetailTabsProps) {
-  const [pathStack, setPathStack] = useState<DirLevel[]>([
-    { label: '', path: '', entries: repo.files },
-  ]);
-  const [openFile, setOpenFile] = useState<OpenFile | null>(null);
-  const [dirLoading, setDirLoading] = useState(false);
-  const [dirError, setDirError] = useState<string | null>(null);
+interface BlobState {
+  key: string;
+  result: BlobResult | null;
+  error: string | null;
+}
 
+export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailTabsProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── URL-driven code navigation ──────────────────────────────────────────
+  const treePath = normalizeRepoPath(searchParams.get('path') ?? '');
+  const rawFile = searchParams.get('file');
+  const filePath = rawFile ? normalizeRepoPath(rawFile) || null : null;
+  const view: 'preview' | 'code' = searchParams.get('view') === 'code' ? 'code' : 'preview';
+  const force = searchParams.get('force') === '1';
+  // Directory shown behind an open file — README links set only ?file=
+  const crumbDir = treePath || (filePath?.includes('/') ? filePath.split('/').slice(0, -1).join('/') : '');
+
+  const setParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        for (const [key, val] of Object.entries(updates)) {
+          if (val === null || val === '') next.delete(key);
+          else next.set(key, val);
+        }
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
+
+  // ── Tree cache (per directory path) ─────────────────────────────────────
+  const [trees, setTrees] = useState<Record<string, RepoFile[]>>({ '': repo.files });
+  const [dirErrors, setDirErrors] = useState<Record<string, string>>({});
+  const [blob, setBlob] = useState<BlobState | null>(null);
   const [tabData, setTabData] = useState<LazyTabData>(initialTabData);
   // Keyed by `${repo.id}:${tab}` so no reset is needed when the repo changes
   const startedTabsRef = useRef<Set<string>>(new Set());
-
-  const blobAbortRef = useRef<AbortController | null>(null);
-  const dirAbortRef = useRef<AbortController | null>(null);
   const tabAbortRef = useRef<AbortController | null>(null);
 
-  // Render-phase reset of all lazy state when the repo changes
+  // Render-phase reset when the repo changes
   const [prevRepoId, setPrevRepoId] = useState(repo.id);
   if (prevRepoId !== repo.id) {
     setPrevRepoId(repo.id);
-    setPathStack([{ label: '', path: '', entries: repo.files }]);
-    setOpenFile(null);
-    setDirLoading(false);
-    setDirError(null);
+    setTrees({ '': repo.files });
+    setDirErrors({});
+    setBlob(null);
     setTabData(initialTabData);
   }
 
-  // Abort in-flight fetches from the previous repo
+  // Abort in-flight lazy-tab fetches from the previous repo
   useEffect(() => {
-    return () => {
-      blobAbortRef.current?.abort();
-      dirAbortRef.current?.abort();
-      tabAbortRef.current?.abort();
-    };
+    return () => { tabAbortRef.current?.abort(); };
   }, [repo.id]);
 
-  const currentDir = pathStack[pathStack.length - 1];
+  // Fetch the tree for treePath when uncached (uncached renders as loading,
+  // so no sync setState is needed here).
+  useEffect(() => {
+    if (trees[treePath] !== undefined || dirErrors[treePath] !== undefined) return;
+    const ctrl = new AbortController();
+    fetchSubtree(repo.owner, repo.name, treePath, ctrl.signal)
+      .then(entries => {
+        if (ctrl.signal.aborted) return;
+        setTrees(t => ({ ...t, [treePath]: mapTreeEntriesToFiles(entries) }));
+      })
+      .catch(err => {
+        if (ctrl.signal.aborted) return;
+        setDirErrors(d => ({ ...d, [treePath]: errMsg(err) }));
+      });
+    return () => ctrl.abort();
+  }, [repo.id, repo.owner, repo.name, treePath, trees, dirErrors]);
 
-  const handleClickEntry = (entry: RepoFile) => {
-    const fullPath = currentDir.path ? `${currentDir.path}/${entry.name}` : entry.name;
+  // Blob fetch keyed by request identity — stale responses can't land, and
+  // `force` in the key makes "load anyway" a pure URL change.
+  const blobKey = filePath ? `${repo.id}:${filePath}:${force ? 1 : 0}` : null;
+  const blobLoading = !!blobKey && blob?.key !== blobKey;
 
-    if (entry.type === 'file') {
-      blobAbortRef.current?.abort();
-      const ctrl = new AbortController();
-      blobAbortRef.current = ctrl;
+  useEffect(() => {
+    if (!blobKey || !filePath) return;
+    if (blob?.key === blobKey) return;
+    const ctrl = new AbortController();
+    getBlob(repo.owner, repo.name, filePath, { force, signal: ctrl.signal })
+      .then(result => {
+        if (!ctrl.signal.aborted) setBlob({ key: blobKey, result, error: null });
+      })
+      .catch(err => {
+        if (!ctrl.signal.aborted) setBlob({ key: blobKey, result: null, error: errMsg(err) });
+      });
+    return () => ctrl.abort();
+  }, [blobKey, blob?.key, repo.owner, repo.name, filePath, force]);
 
-      setOpenFile({ name: entry.name, path: fullPath, content: null, loading: true, error: null });
-
-      fetchBlob(repo.owner, repo.name, fullPath, ctrl.signal)
-        .then(content => {
-          if (!ctrl.signal.aborted) {
-            setOpenFile(f => f?.path === fullPath ? { ...f, content, loading: false } : f);
-          }
-        })
-        .catch(err => {
-          if (ctrl.signal.aborted) return;
-          const msg = err instanceof Error ? err.message : 'Failed to load file';
-          setOpenFile(f => f?.path === fullPath ? { ...f, loading: false, error: msg } : f);
-        });
-    } else {
-      dirAbortRef.current?.abort();
-      const ctrl = new AbortController();
-      dirAbortRef.current = ctrl;
-
-      setDirLoading(true);
-      setDirError(null);
-
-      fetchSubtree(repo.owner, repo.name, fullPath, ctrl.signal)
-        .then(entries => {
-          if (ctrl.signal.aborted) return;
-          const files = mapTreeEntriesToFiles(entries);
-          setPathStack(s => [...s, { label: entry.name, path: fullPath, entries: files }]);
-          setDirLoading(false);
-        })
-        .catch(err => {
-          if (ctrl.signal.aborted) return;
-          setDirError(err instanceof Error ? err.message : 'Failed to open directory');
-          setDirLoading(false);
-        });
-    }
-  };
-
+  // ── Lazy tabs (pulls/issues/events/certs) ───────────────────────────────
   const loadLazyTab = useCallback((tab: LazyTabId) => {
     // No sync state write here — 'idle' already renders as loading, so this is
     // safe to call from an effect (react-hooks/set-state-in-effect).
@@ -200,7 +206,7 @@ export function DetailTabs({ repo, value, onValueChange }: DetailTabsProps) {
         startedTabsRef.current.delete(`${repo.id}:${tab}`);
         setTabData(d => ({
           ...d,
-          [tab]: { status: 'error', items: [], error: err instanceof Error ? err.message : 'request failed' },
+          [tab]: { status: 'error', items: [], error: errMsg(err) },
         } as LazyTabData));
       });
   }, [repo.id, repo.owner, repo.name]);
@@ -219,12 +225,33 @@ export function DetailTabs({ repo, value, onValueChange }: DetailTabsProps) {
     }
   }, [value, repo.id, loadLazyTab]);
 
-  const navigateToBreadcrumb = (idx: number) => {
-    setPathStack(s => s.slice(0, idx + 1));
-    setOpenFile(null);
+  // ── Navigation handlers ─────────────────────────────────────────────────
+  const handleClickEntry = (entry: RepoFile) => {
+    const fullPath = treePath ? `${treePath}/${entry.name}` : entry.name;
+    if (entry.type === 'dir') {
+      setParams({ path: fullPath, file: null, view: null, force: null });
+    } else {
+      setParams({ path: treePath || null, file: fullPath, view: null, force: null });
+    }
   };
 
-  const showBreadcrumb = pathStack.length > 1 && !openFile;
+  const goToDir = (dir: string) => {
+    setParams({ path: dir || null, file: null, view: null, force: null });
+  };
+
+  // Backspace walks up: open file → its directory; directory → parent
+  useShortcut('Backspace', e => {
+    if (value !== 'code') return;
+    e.preventDefault();
+    if (filePath) {
+      goToDir(crumbDir);
+    } else if (treePath) {
+      goToDir(treePath.split('/').slice(0, -1).join('/'));
+    }
+  });
+
+  const crumbSegments = crumbDir ? crumbDir.split('/') : [];
+  const showBreadcrumb = crumbSegments.length > 0 || filePath !== null;
 
   const renderLazyTab = (tab: LazyTabId, emptyLabel: string, render: () => React.ReactNode) => {
     const state = tabData[tab];
@@ -239,6 +266,9 @@ export function DetailTabs({ repo, value, onValueChange }: DetailTabsProps) {
     if (state.items.length === 0) return <EmptyTab label={emptyLabel} />;
     return render();
   };
+
+  const currentEntries = trees[treePath];
+  const dirError = dirErrors[treePath];
 
   return (
     <Tabs value={value} onValueChange={handleTabChange}>
@@ -271,46 +301,85 @@ export function DetailTabs({ repo, value, onValueChange }: DetailTabsProps) {
       </div>
 
       <TabsContent value="code" className="animate-fade-in mt-0">
-        {openFile ? (
-          <FileViewer
-            path={openFile.path}
-            content={openFile.content}
-            loading={openFile.loading}
-            error={openFile.error}
-            onBack={() => setOpenFile(null)}
-          />
-        ) : (
-          <>
-            {showBreadcrumb && (
-              <div className="flex items-center gap-1.5 mb-3 px-0.5">
-                {pathStack.map((level, idx) => (
+        <div className="flex items-center gap-1.5 mb-3 px-0.5 flex-wrap min-h-7">
+          {showBreadcrumb && (
+            <>
+              <button
+                onClick={() => goToDir('')}
+                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors duration-100
+                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+              >
+                root
+              </button>
+              {crumbSegments.map((seg, idx) => {
+                const isLast = idx === crumbSegments.length - 1 && !filePath;
+                return (
                   <Fragment key={idx}>
-                    {idx < pathStack.length - 1 ? (
+                    <span className="text-[12px] text-muted-foreground">/</span>
+                    {isLast ? (
+                      <span className="text-[12px] text-foreground">{seg}</span>
+                    ) : (
                       <button
-                        onClick={() => navigateToBreadcrumb(idx)}
+                        onClick={() => goToDir(crumbSegments.slice(0, idx + 1).join('/'))}
                         className="text-[12px] text-muted-foreground hover:text-foreground transition-colors duration-100
                           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
                       >
-                        {idx === 0 ? 'root' : level.label}
+                        {seg}
                       </button>
-                    ) : (
-                      <span className="text-[12px] text-foreground">{level.label}</span>
-                    )}
-                    {idx < pathStack.length - 1 && (
-                      <span className="text-[12px] text-muted-foreground">/</span>
                     )}
                   </Fragment>
-                ))}
-              </div>
-            )}
-            {dirError && (
-              <p className="m-0 mb-3 text-[12px] text-destructive">{dirError}</p>
-            )}
-            {dirLoading ? (
-              <TabLoading />
-            ) : (
-              <FileList files={currentDir.entries} onClickEntry={handleClickEntry} />
-            )}
+                );
+              })}
+              {filePath && (
+                <>
+                  <span className="text-[12px] text-muted-foreground">/</span>
+                  <span className="text-[12px] text-foreground">{filePath.split('/').pop()}</span>
+                </>
+              )}
+            </>
+          )}
+          {onOpenFinder && (
+            <Pill onClick={onOpenFinder} className="ml-auto" aria-label="find file (t)">
+              find file · t
+            </Pill>
+          )}
+        </div>
+
+        {filePath ? (
+          <FileViewer
+            owner={repo.owner}
+            name={repo.name}
+            path={filePath}
+            blob={blob?.key === blobKey ? blob.result : null}
+            loading={blobLoading}
+            error={blob?.key === blobKey ? blob.error : null}
+            view={isMarkdownPath(filePath) ? view : 'code'}
+            headSha={repo.commits[0]?.hash}
+            onBack={() => goToDir(crumbDir)}
+            onSetView={v => setParams({ view: v === 'code' ? 'code' : null })}
+            onForce={() => setParams({ force: '1' })}
+          />
+        ) : dirError ? (
+          <TabError
+            message={dirError}
+            onRetry={() => setDirErrors(d => {
+              const next = { ...d };
+              delete next[treePath];
+              return next;
+            })}
+          />
+        ) : currentEntries === undefined ? (
+          <TabLoading />
+        ) : (
+          <>
+            <FileList files={currentEntries} onClickEntry={handleClickEntry} />
+            <ReadmePanel
+              key={`${repo.id}:${treePath}`}
+              owner={repo.owner}
+              name={repo.name}
+              dirPath={treePath}
+              entries={currentEntries}
+            />
           </>
         )}
       </TabsContent>

@@ -1,5 +1,6 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import type { RepoSort } from '../lib/api';
 import { useRepositories } from '../hooks/useRepositories';
@@ -53,8 +54,11 @@ export default function RepositoriesPage() {
     return repos.filter(r => (forkFilter === 'forks' ? r.isMirror : !r.isMirror));
   }, [repos, forkFilter]);
 
+  const listRef = useRef<HTMLDivElement>(null);
+  useListNav(listRef);
+
   return (
-    <div className="max-w-[1520px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
 
       <ExploreTabs />
 
@@ -98,12 +102,14 @@ export default function RepositoriesPage() {
           </div>
         ) : (
           <>
-            <RepoList
-              repos={visibleRepos}
-              loading={loading}
-              skeletonCount={Math.min(perPage, 12)}
-              emptyMessage={search || forkFilter !== 'all' ? 'no repositories match' : 'no repositories yet'}
-            />
+            <div ref={listRef}>
+              <RepoList
+                repos={visibleRepos}
+                loading={loading}
+                skeletonCount={Math.min(perPage, 12)}
+                emptyMessage={search || forkFilter !== 'all' ? 'no repositories match' : 'no repositories yet'}
+              />
+            </div>
             <RepoPagination
               page={page}
               totalPages={totalPages}

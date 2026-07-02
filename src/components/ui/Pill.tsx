@@ -11,6 +11,8 @@ interface PillProps {
   className?: string;
   title?: string;
   'aria-label'?: string;
+  'aria-pressed'?: boolean;
+  'data-row-link'?: string;
 }
 
 const baseCls =

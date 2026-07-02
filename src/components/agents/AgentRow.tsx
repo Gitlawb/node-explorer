@@ -15,7 +15,7 @@ export function AgentRow({ agent, index }: AgentRowProps) {
   return (
     <li
       className="grid grid-cols-[16px_minmax(0,1fr)] md:grid-cols-[24px_minmax(0,4fr)_minmax(0,3fr)_140px_110px]
-        items-start gap-x-3 md:gap-x-4 px-4 sm:px-6 py-4
+        items-start gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3
         border-b border-border-inner last:border-b-0 hover:bg-hover transition-colors
         animate-fade-up motion-reduce:animate-none"
       style={{ animationDelay: `${index * 16}ms` }}
@@ -35,7 +35,7 @@ export function AgentRow({ agent, index }: AgentRowProps) {
           <span className="text-[14px] font-bold text-foreground">{shortDid(agent.did)}</span>
           <span className="text-[11px] text-dim">{agent.status}</span>
           <CopyButton value={agent.did} label="did" />
-          <Pill to={`/repos?owner=${encodeURIComponent(didKeySegment(agent.did))}`}>
+          <Pill to={`/repos?owner=${encodeURIComponent(didKeySegment(agent.did))}`} data-row-link="">
             repos →
           </Pill>
         </div>

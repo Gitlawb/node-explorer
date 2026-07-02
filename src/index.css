@@ -166,6 +166,21 @@ body {
     repeating-linear-gradient(to bottom, var(--color-grid) 0 1px, transparent 1px 80px);
 }
 
+/* Keyboard key chip (cheatsheet, hints) */
+.kbd {
+  font-family: var(--font-mono-stack);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-foreground);
+  border: 1px solid var(--color-text-dim);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  padding: 3px 6px;
+  min-width: 22px;
+  text-align: center;
+  display: inline-block;
+}
+
 /* Native select chevron (replaces per-component inline background-image) */
 .select-chevron {
   appearance: none;
@@ -173,6 +188,205 @@ body {
   background-repeat: no-repeat;
   background-position: right 8px center;
 }
+
+/* ── README / markdown typography (.markdown-gl) ─────────────────────────────
+   Ported from web/src/app/globals.css, re-based on explorer tokens (terminal
+   scale, 2px radii, warm-accent links, class-based dark mode). */
+.markdown-gl {
+  font-family: var(--font-mono-stack);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-mid);
+  word-wrap: break-word;
+}
+.markdown-gl > *:first-child { margin-top: 0 !important; }
+.markdown-gl > *:last-child  { margin-bottom: 0 !important; }
+
+.markdown-gl p, .markdown-gl blockquote, .markdown-gl ul, .markdown-gl ol,
+.markdown-gl table, .markdown-gl pre, .markdown-gl details {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.markdown-gl h1, .markdown-gl h2, .markdown-gl h3,
+.markdown-gl h4, .markdown-gl h5, .markdown-gl h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-foreground);
+  scroll-margin-top: 4rem;
+}
+.markdown-gl h1 { font-size: 1.75em; padding-bottom: 0.3em; border-bottom: 1px solid var(--color-border); }
+.markdown-gl h2 { font-size: 1.4em;  padding-bottom: 0.3em; border-bottom: 1px solid var(--color-border); }
+.markdown-gl h3 { font-size: 1.2em; }
+.markdown-gl h4 { font-size: 1em; }
+.markdown-gl h5 { font-size: 0.875em; }
+.markdown-gl h6 { font-size: 0.85em; color: var(--color-muted-foreground); }
+
+.markdown-gl strong { color: var(--color-foreground); font-weight: 700; }
+.markdown-gl a {
+  color: var(--color-foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--color-warm) 45%, transparent);
+}
+.markdown-gl a:hover { color: var(--color-warm-text); text-decoration-color: var(--color-warm); }
+.markdown-gl del { color: var(--color-muted-foreground); }
+
+.markdown-gl ul, .markdown-gl ol { padding-left: 2em; }
+.markdown-gl ul { list-style: disc; }
+.markdown-gl ol { list-style: decimal; }
+.markdown-gl li + li { margin-top: 0.25em; }
+.markdown-gl li > ul, .markdown-gl li > ol { margin: 0.25rem 0 0; }
+.markdown-gl li > p { margin-bottom: 0.5rem; }
+.markdown-gl li:has(> input[type="checkbox"]:first-child) { list-style: none; margin-left: -1.5em; }
+.markdown-gl input[type="checkbox"] { margin-right: 0.5em; accent-color: var(--color-warm); }
+
+.markdown-gl blockquote {
+  padding: 0 1em;
+  border-left: 0.25em solid var(--color-border);
+  color: var(--color-muted-foreground);
+}
+.markdown-gl blockquote > :last-child { margin-bottom: 0; }
+
+.markdown-gl hr {
+  height: 1px;
+  padding: 0;
+  margin: 1.5rem 0;
+  background: var(--color-border);
+  border: 0;
+}
+
+.markdown-gl code {
+  font-family: var(--font-mono-stack);
+  font-size: 85%;
+  color: var(--color-foreground);
+  background: var(--color-muted);
+  padding: 0.2em 0.4em;
+  border-radius: 2px;
+}
+.markdown-gl pre {
+  font-family: var(--font-mono-stack);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-mid);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+.markdown-gl pre code {
+  display: inline;
+  padding: 0;
+  font-size: 100%;
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+
+.markdown-gl table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-spacing: 0;
+  border-collapse: collapse;
+  font-size: 1em;
+}
+.markdown-gl th, .markdown-gl td {
+  padding: 6px 13px;
+  border: 1px solid var(--color-border);
+}
+.markdown-gl th { color: var(--color-foreground); font-weight: 700; text-align: left; }
+.markdown-gl tbody tr:nth-child(2n) { background: var(--color-hover); }
+
+.markdown-gl img { max-width: 100%; height: auto; display: inline-block; vertical-align: middle; }
+
+.markdown-gl details { border: 1px solid var(--color-border); border-radius: 2px; padding: 0.5rem 1rem; }
+.markdown-gl details[open] { padding-bottom: 1rem; }
+.markdown-gl summary { cursor: pointer; color: var(--color-foreground); font-weight: 700; }
+
+.markdown-gl kbd {
+  font-family: var(--font-mono-stack);
+  font-size: 0.8125em;
+  border: 1px solid var(--color-text-dim);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  padding: 0.1em 0.4em;
+}
+
+/* GitHub-style alerts (marked-alert) — monochrome: hierarchy via border
+   weight + ::before glyph. \FE0E forces text presentation. */
+.markdown-gl .markdown-alert {
+  padding: 0.5rem 1em;
+  margin-bottom: 1rem;
+  border-left: 0.25em solid var(--color-text-dim);
+  color: var(--color-muted-foreground);
+}
+.markdown-gl .markdown-alert > :last-child { margin-bottom: 0; }
+.markdown-gl .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--color-foreground);
+}
+.markdown-gl .markdown-alert-title::before { font-family: var(--font-mono-stack); line-height: 1; }
+.markdown-gl .markdown-alert-note      .markdown-alert-title::before { content: "\2139\FE0E"; }
+.markdown-gl .markdown-alert-tip       .markdown-alert-title::before { content: "\2726"; }
+.markdown-gl .markdown-alert-important .markdown-alert-title::before { content: "\203C\FE0E"; }
+.markdown-gl .markdown-alert-warning   .markdown-alert-title::before { content: "\26A0\FE0E"; }
+.markdown-gl .markdown-alert-caution   .markdown-alert-title::before { content: "\2715"; }
+.markdown-gl .markdown-alert-warning,
+.markdown-gl .markdown-alert-caution { border-left-color: var(--color-warm); }
+
+/* Footnotes (marked-footnote) */
+.markdown-gl .footnotes {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+}
+.markdown-gl .footnotes ol { margin-bottom: 0; }
+.markdown-gl .footnotes p { display: inline; margin: 0; }
+.markdown-gl sup a[data-footnote-ref] { text-decoration: none; font-weight: 700; padding: 0 0.15em; }
+.markdown-gl a[data-footnote-backref] { text-decoration: none; }
+.markdown-gl .sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ── Syntax tokens (shiki sentinel colors → semantic classes) ────────────────
+   src/lib/highlight.ts emits class-only spans; these own the real colors.
+   Light values in :root, dark overrides under .dark. */
+.tok-kw   { color: #2563eb; }
+.tok-str  { color: #15803d; }
+.tok-type { color: #a16207; }
+.tok-num  { color: #a16207; }
+.tok-fn   { color: var(--color-foreground); }
+.tok-prop { color: var(--color-text-mid); }
+.tok-cmt  { color: var(--color-text-dim); font-style: italic; }
+.tok-punc { color: var(--color-muted-foreground); }
+.dark .tok-kw   { color: #60a5fa; }
+.dark .tok-str  { color: #4ade80; }
+.dark .tok-type { color: #facc15; }
+.dark .tok-num  { color: #facc15; }
+
+/* ── Code viewer table ──────────────────────────────────────────────────────── */
+.code-table { border-collapse: collapse; }
+.code-table td { padding-top: 0; padding-bottom: 0; }
+.code-table tr:target { background: color-mix(in srgb, var(--color-warm) 12%, transparent); }
+.code-table tr:target td:first-child a { color: var(--color-warm-text); }
+/* Class-driven range highlight (#L10-L25 + gutter clicks); :target stays as
+   a no-JS fallback for bare #L37 links */
+.code-table tr.line-hl { background: color-mix(in srgb, var(--color-warm) 12%, transparent); }
+.code-table tr.line-hl td:first-child a { color: var(--color-warm-text); }
 
 /* ── Animations ────────────────────────────────────────────────────────────── */
 

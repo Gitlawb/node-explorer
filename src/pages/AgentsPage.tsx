@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useAgents } from '../hooks/useAgents';
 import { useRefreshKey } from '../hooks/useRefreshKey';
@@ -42,8 +43,22 @@ export default function AgentsPage() {
     refreshKey,
   });
 
+  const listRef = useRef<HTMLDivElement>(null);
+  useListNav(listRef);
+
+  // Local input state — a URL-controlled input drops keystrokes while router
+  // transitions lag; sync from URL only when the input isn't focused.
+  const [searchValue, setSearchValue] = useState(search);
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (prevSearch !== search) {
+    setPrevSearch(search);
+    const inputFocused =
+      typeof document !== 'undefined' && document.activeElement?.id === 'agent-search';
+    if (!inputFocused && search !== searchValue) setSearchValue(search);
+  }
+
   return (
-    <div className="max-w-[1520px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
 
       <ExploreTabs />
 
@@ -78,8 +93,11 @@ export default function AgentsPage() {
           <input
             id="agent-search"
             type="search"
-            value={search}
-            onChange={e => setParams({ q: e.target.value, page: null }, true)}
+            value={searchValue}
+            onChange={e => {
+              setSearchValue(e.target.value);
+              setParams({ q: e.target.value, page: null }, true);
+            }}
             placeholder="search by did or capability…"
             autoComplete="off"
             spellCheck={false}
@@ -97,7 +115,9 @@ export default function AgentsPage() {
           </div>
         ) : (
           <>
-            <AgentList agents={agents} loading={loading} skeletonCount={Math.min(perPage, 12)} />
+            <div ref={listRef}>
+              <AgentList agents={agents} loading={loading} skeletonCount={Math.min(perPage, 12)} />
+            </div>
             <RepoPagination
               page={page}
               totalPages={totalPages}
