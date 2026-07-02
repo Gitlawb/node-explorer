@@ -1,81 +1,135 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAllRepos, invalidateReposCache, mapApiRepo } from '../lib/api';
-import type { ApiRepo } from '../lib/api';
+import { fetchRepos, mapApiRepo, SERVER_SEARCH_ENABLED } from '../lib/api';
+import type { ApiRepo, RepoSort } from '../lib/api';
 import type { Repository } from '../types/repo';
-import { DEFAULT_PER_PAGE } from '../lib/mock-data';
+import { DEFAULT_PER_PAGE } from '../lib/constants';
+import { useDebouncedValue } from './useDebouncedValue';
 
 interface Options {
   page: number;
   perPage?: number;
   search?: string;
+  sort?: RepoSort;
+  owner?: string;
   refreshKey?: number;
 }
 
 interface Result {
-  repos: Repository[];
+  /** null until the first page has ever loaded (render skeletons) */
+  repos: Repository[] | null;
   totalCount: number;
   totalPages: number;
   windowStart: number;
   windowEnd: number;
   loading: boolean;
   error: string | null;
+  /** 'server' when the node filters/sorts; 'page' when search/sort apply only to the loaded page */
+  searchScope: 'server' | 'page';
+}
+
+function sortPage(repos: ApiRepo[], sort: RepoSort): ApiRepo[] {
+  const sorted = [...repos];
+  switch (sort) {
+    case 'created':
+      sorted.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      break;
+    case 'oldest':
+      sorted.sort((a, b) => a.created_at.localeCompare(b.created_at));
+      break;
+    case 'name':
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case 'stars':
+      sorted.sort((a, b) => b.star_count - a.star_count);
+      break;
+    case 'updated':
+    default:
+      break; // server order is updated_at DESC
+  }
+  return sorted;
 }
 
 export function useRepositories({
   page,
   perPage = DEFAULT_PER_PAGE,
   search = '',
+  sort = 'updated',
+  owner = '',
   refreshKey = 0,
 }: Options): Result {
   const [apiRepos, setApiRepos] = useState<ApiRepo[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (refreshKey > 0) invalidateReposCache();
+  const debouncedSearch = useDebouncedValue(search.trim(), 300);
+  const serverQuery = SERVER_SEARCH_ENABLED ? debouncedSearch : '';
+  const serverSort: RepoSort = SERVER_SEARCH_ENABLED ? sort : 'updated';
+
+  // Render-phase reset: flip to loading as soon as the query inputs change,
+  // without a cascading effect (react-hooks/set-state-in-effect).
+  const fetchKey = `${page}|${perPage}|${owner}|${serverQuery}|${serverSort}|${refreshKey}`;
+  const [prevFetchKey, setPrevFetchKey] = useState(fetchKey);
+  if (prevFetchKey !== fetchKey) {
+    setPrevFetchKey(fetchKey);
     setLoading(true);
     setError(null);
-    fetchAllRepos()
-      .then(data => {
-        if (!cancelled) {
-          setApiRepos(data);
-          setLoading(false);
-        }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchRepos({
+      limit: perPage,
+      offset: (page - 1) * perPage,
+      owner: owner || undefined,
+      q: serverQuery || undefined,
+      sort: serverSort,
+      signal: controller.signal,
+    })
+      .then(({ repos, totalCount }) => {
+        setApiRepos(repos);
+        setTotalCount(totalCount);
+        setLoading(false);
       })
       .catch(err => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load repositories');
-          setLoading(false);
-        }
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : 'Failed to load repositories');
+        setLoading(false);
       });
-    return () => { cancelled = true; };
-  }, [refreshKey]);
+    return () => controller.abort();
+  }, [page, perPage, owner, serverQuery, serverSort, refreshKey]);
 
   const derived = useMemo(() => {
     if (!apiRepos) {
-      return { repos: [], totalCount: 0, totalPages: 1, windowStart: 0, windowEnd: 0 };
+      return { repos: null, totalPages: 1, windowStart: 0, windowEnd: 0 };
     }
-    const q = search.trim().toLowerCase();
-    const filtered = q
-      ? apiRepos.filter(
+    let rows = apiRepos;
+    if (!SERVER_SEARCH_ENABLED) {
+      const q = debouncedSearch.toLowerCase();
+      if (q) {
+        rows = rows.filter(
           r =>
             r.name.toLowerCase().includes(q) ||
-            r.description.toLowerCase().includes(q) ||
+            (r.description ?? '').toLowerCase().includes(q) ||
             r.owner_did.toLowerCase().includes(q),
-        )
-      : apiRepos;
+        );
+      }
+      rows = sortPage(rows, sort);
+    }
 
-    const totalCount = filtered.length;
     const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
-    const safePage = Math.min(page, totalPages);
-    const start = (safePage - 1) * perPage;
-    const repos = filtered.slice(start, start + perPage).map(r => mapApiRepo(r));
+    const start = (page - 1) * perPage;
     const windowStart = totalCount === 0 ? 0 : start + 1;
-    const windowEnd = Math.min(start + perPage, totalCount);
+    const windowEnd = Math.min(start + apiRepos.length, totalCount);
 
-    return { repos, totalCount, totalPages, windowStart, windowEnd };
-  }, [apiRepos, page, perPage, search]);
+    return { repos: rows.map(r => mapApiRepo(r)), totalPages, windowStart, windowEnd };
+  }, [apiRepos, totalCount, page, perPage, debouncedSearch, sort]);
 
-  return { ...derived, loading, error };
+  return {
+    ...derived,
+    totalCount,
+    loading,
+    error,
+    searchScope: SERVER_SEARCH_ENABLED ? 'server' : 'page',
+  };
 }

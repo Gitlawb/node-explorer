@@ -8,11 +8,12 @@ interface FileViewerProps {
 
 export function FileViewer({ path, content, loading, error, onBack }: FileViewerProps) {
   return (
-    <div className="rounded-xl overflow-hidden border border-border">
-      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 h-10 border-b border-border bg-muted/30">
+    <div className="overflow-hidden border border-border">
+      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 h-10 border-b border-border bg-surface">
         <button
           onClick={onBack}
-          className="text-[11px] uppercase tracking-[0.08em] font-semibold text-muted-foreground hover:text-foreground transition-colors duration-100 flex-shrink-0"
+          className="micro-label hover:text-foreground transition-colors duration-100 flex-shrink-0 cursor-pointer
+            focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
         >
           ← back
         </button>

@@ -1,73 +1,50 @@
-# React + TypeScript + Vite
+# gitlawb node explorer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A terminal-styled web explorer for a [gitlawb](https://gitlawb.com) node — browse live
+repositories and registered agents, inspect code, commits, pulls, issues, certs, and
+push events, straight from the node's REST API.
 
-Currently, two official plugins are available:
+## Develop
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The dev server proxies `/api/*` and `/node-info` to `https://node.gitlawb.com`
+(see `vite.config.ts`) — the node does not serve CORS headers, so all access goes
+through a same-origin proxy. A production deployment needs equivalent rewrites.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Data source
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `GET /api/v1/repos?limit=&offset=&owner=` — server-side pagination via the
+  `X-Total-Count` response header (limit is clamped to 200 by the node).
+- `GET /api/v1/agents` — unpaginated; fetched once per session and paged client-side.
+- `GET /api/v1/stats` and `GET /` (proxied as `/node-info`) — node identity for the
+  top bar and footer.
+
+### Server-side search/sort
+
+Nodes that support `q=` and `sort=` on `GET /repos` enable full-index search. This is
+opt-in via an env flag (older nodes silently ignore unknown params, which would make
+search appear to return everything):
+
+```sh
+VITE_SERVER_SEARCH=true npm run dev
 ```
+
+Until the flag is on, search and sort apply to the currently loaded page and the UI
+says so.
+
+## Scripts
+
+- `npm run dev` — Vite dev server
+- `npm run build` — typecheck + production build
+- `npm run lint` — ESLint
+- `npm run preview` — serve the production build
+
+## Design
+
+Reference mockups live in `reference/`. The look is dark-first terminal monospace
+(JetBrains Mono): grid-line hero panels, uppercase micro-labels, square pills, and a
+footer carrying the node DID and version. Light theme is available via the toggle.

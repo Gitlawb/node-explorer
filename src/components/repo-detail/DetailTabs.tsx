@@ -1,8 +1,13 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, useCallback } from 'react';
 import type { Repository, RepoFile } from '../../types/repo';
 import { FileList } from './FileList';
 import { FileViewer } from './FileViewer';
 import { CommitList } from './CommitList';
+import { IssueList } from './IssueList';
+import { PullList } from './PullList';
+import { EventList } from './EventList';
+import { CertList } from './CertList';
+import { Pill } from '../ui/Pill';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   fetchBlob,
@@ -13,6 +18,7 @@ import {
   fetchCerts,
   mapTreeEntriesToFiles,
 } from '../../lib/api';
+import type { ApiIssue, ApiPull, ApiRepoEvent, ApiCert } from '../../lib/api';
 
 interface DirLevel {
   label: string;
@@ -28,41 +34,108 @@ interface OpenFile {
   error: string | null;
 }
 
+type LazyTabId = 'pulls' | 'issues' | 'events' | 'certs';
+
+interface TabState<T> {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  items: T[];
+  error?: string;
+}
+
+interface LazyTabData {
+  pulls: TabState<ApiPull>;
+  issues: TabState<ApiIssue>;
+  events: TabState<ApiRepoEvent>;
+  certs: TabState<ApiCert>;
+}
+
+const idleTab = { status: 'idle' as const, items: [] };
+
+const initialTabData: LazyTabData = {
+  pulls: idleTab,
+  issues: idleTab,
+  events: idleTab,
+  certs: idleTab,
+};
+
+const LAZY_FETCHERS: Record<LazyTabId, (o: string, n: string, s?: AbortSignal) => Promise<unknown[]>> = {
+  pulls: fetchPulls,
+  issues: fetchIssues,
+  events: fetchEvents,
+  certs: fetchCerts,
+};
+
 function EmptyTab({ label }: { label: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
-      <p className="text-[14px] text-muted-foreground">No {label} yet</p>
+    <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center border border-border">
+      <p className="m-0 text-[13px] text-muted-foreground">no {label} yet</p>
     </div>
   );
 }
 
-interface DetailTabsProps {
-  repo: Repository;
+function TabLoading() {
+  return (
+    <div className="flex items-center justify-center py-16 border border-border" aria-busy="true">
+      <p className="m-0 text-[13px] text-muted-foreground animate-pulse">loading…</p>
+    </div>
+  );
 }
 
-export function DetailTabs({ repo }: DetailTabsProps) {
+function TabError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 py-16 border border-border">
+      <p className="m-0 text-[13px] text-destructive">failed to load: {message}</p>
+      <Pill onClick={onRetry}>retry</Pill>
+    </div>
+  );
+}
+
+const TRIGGER_CLS =
+  'relative rounded-none border-b-2 border-transparent px-3 sm:px-4 py-3 text-[13px] font-normal lowercase ' +
+  'text-muted-foreground transition-colors whitespace-nowrap hover:text-foreground ' +
+  'data-[state=active]:border-warm data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none';
+
+interface DetailTabsProps {
+  repo: Repository;
+  value: string;
+  onValueChange: (tab: string) => void;
+}
+
+export function DetailTabs({ repo, value, onValueChange }: DetailTabsProps) {
   const [pathStack, setPathStack] = useState<DirLevel[]>([
     { label: '', path: '', entries: repo.files },
   ]);
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const [dirLoading, setDirLoading] = useState(false);
+  const [dirError, setDirError] = useState<string | null>(null);
 
-  const [tabCounts, setTabCounts] = useState<Partial<Record<string, number>>>({});
-  const fetchedTabsRef = useRef<Set<string>>(new Set());
+  const [tabData, setTabData] = useState<LazyTabData>(initialTabData);
+  // Keyed by `${repo.id}:${tab}` so no reset is needed when the repo changes
+  const startedTabsRef = useRef<Set<string>>(new Set());
 
   const blobAbortRef = useRef<AbortController | null>(null);
   const dirAbortRef = useRef<AbortController | null>(null);
+  const tabAbortRef = useRef<AbortController | null>(null);
 
-  // Reset Code tab state when repo changes
-  useEffect(() => {
+  // Render-phase reset of all lazy state when the repo changes
+  const [prevRepoId, setPrevRepoId] = useState(repo.id);
+  if (prevRepoId !== repo.id) {
+    setPrevRepoId(repo.id);
     setPathStack([{ label: '', path: '', entries: repo.files }]);
     setOpenFile(null);
     setDirLoading(false);
-    setTabCounts({});
-    fetchedTabsRef.current = new Set();
-    blobAbortRef.current?.abort();
-    dirAbortRef.current?.abort();
-  }, [repo.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    setDirError(null);
+    setTabData(initialTabData);
+  }
+
+  // Abort in-flight fetches from the previous repo
+  useEffect(() => {
+    return () => {
+      blobAbortRef.current?.abort();
+      dirAbortRef.current?.abort();
+      tabAbortRef.current?.abort();
+    };
+  }, [repo.id]);
 
   const currentDir = pathStack[pathStack.length - 1];
 
@@ -93,6 +166,7 @@ export function DetailTabs({ repo }: DetailTabsProps) {
       dirAbortRef.current = ctrl;
 
       setDirLoading(true);
+      setDirError(null);
 
       fetchSubtree(repo.owner, repo.name, fullPath, ctrl.signal)
         .then(entries => {
@@ -103,29 +177,47 @@ export function DetailTabs({ repo }: DetailTabsProps) {
         })
         .catch(err => {
           if (ctrl.signal.aborted) return;
-          console.error('Failed to fetch subtree:', err);
+          setDirError(err instanceof Error ? err.message : 'Failed to open directory');
           setDirLoading(false);
         });
     }
   };
 
+  const loadLazyTab = useCallback((tab: LazyTabId) => {
+    // No sync state write here — 'idle' already renders as loading, so this is
+    // safe to call from an effect (react-hooks/set-state-in-effect).
+    startedTabsRef.current.add(`${repo.id}:${tab}`);
+    const ctrl = new AbortController();
+    tabAbortRef.current = ctrl;
+
+    LAZY_FETCHERS[tab](repo.owner, repo.name, ctrl.signal)
+      .then(items => {
+        if (ctrl.signal.aborted) return;
+        setTabData(d => ({ ...d, [tab]: { status: 'ready', items } } as LazyTabData));
+      })
+      .catch(err => {
+        if (ctrl.signal.aborted) return;
+        startedTabsRef.current.delete(`${repo.id}:${tab}`);
+        setTabData(d => ({
+          ...d,
+          [tab]: { status: 'error', items: [], error: err instanceof Error ? err.message : 'request failed' },
+        } as LazyTabData));
+      });
+  }, [repo.id, repo.owner, repo.name]);
+
   const handleTabChange = (tab: string) => {
-    if (fetchedTabsRef.current.has(tab)) return;
-
-    const lazyFetchers: Record<string, (o: string, n: string) => Promise<number>> = {
-      pulls: fetchPulls,
-      issues: fetchIssues,
-      events: fetchEvents,
-      certs: fetchCerts,
-    };
-
-    if (!lazyFetchers[tab]) return;
-    fetchedTabsRef.current.add(tab);
-
-    lazyFetchers[tab](repo.owner, repo.name)
-      .then(count => setTabCounts(c => ({ ...c, [tab]: count })))
-      .catch(() => setTabCounts(c => ({ ...c, [tab]: 0 })));
+    onValueChange(tab);
+    if (tab in LAZY_FETCHERS && !startedTabsRef.current.has(`${repo.id}:${tab}`)) {
+      loadLazyTab(tab as LazyTabId);
+    }
   };
+
+  // When the parent switches tabs programmatically (e.g. "pull requests →"), lazy-load too
+  useEffect(() => {
+    if (value in LAZY_FETCHERS && !startedTabsRef.current.has(`${repo.id}:${value}`)) {
+      loadLazyTab(value as LazyTabId);
+    }
+  }, [value, repo.id, loadLazyTab]);
 
   const navigateToBreadcrumb = (idx: number) => {
     setPathStack(s => s.slice(0, idx + 1));
@@ -134,40 +226,40 @@ export function DetailTabs({ repo }: DetailTabsProps) {
 
   const showBreadcrumb = pathStack.length > 1 && !openFile;
 
+  const renderLazyTab = (tab: LazyTabId, emptyLabel: string, render: () => React.ReactNode) => {
+    const state = tabData[tab];
+    if (state.status === 'loading' || state.status === 'idle') return <TabLoading />;
+    if (state.status === 'error') {
+      const retry = () => {
+        setTabData(d => ({ ...d, [tab]: idleTab } as LazyTabData));
+        loadLazyTab(tab);
+      };
+      return <TabError message={state.error ?? 'request failed'} onRetry={retry} />;
+    }
+    if (state.items.length === 0) return <EmptyTab label={emptyLabel} />;
+    return render();
+  };
+
   return (
-    <Tabs defaultValue="code" onValueChange={handleTabChange}>
+    <Tabs value={value} onValueChange={handleTabChange}>
       {/* Negative margins extend the scroll zone to the page edge on mobile */}
       <div className="relative min-w-0">
         <div className="overflow-x-auto -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
         <TabsList className="w-max min-w-full justify-start rounded-none border-b border-border bg-transparent p-0 h-auto mb-6">
-          <TabsTrigger
-            value="code"
-            className="relative rounded-none border-b-2 border-transparent px-3 sm:px-4 py-3 text-[13px] sm:text-[14px] font-normal text-muted-foreground transition-colors data-[state=active]:border-[var(--color-warm)] data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none hover:text-foreground whitespace-nowrap"
-          >
+          <TabsTrigger value="code" className={TRIGGER_CLS}>
             code
-            <span className="ml-1.5 text-[11px] tabular-nums text-muted-foreground">
-              {repo.files.length}
-            </span>
+            <span className="ml-1.5 text-[11px] tabular-nums text-dim">{repo.files.length}</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="commits"
-            className="relative rounded-none border-b-2 border-transparent px-3 sm:px-4 py-3 text-[13px] sm:text-[14px] font-normal text-muted-foreground transition-colors data-[state=active]:border-[var(--color-warm)] data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none hover:text-foreground whitespace-nowrap"
-          >
+          <TabsTrigger value="commits" className={TRIGGER_CLS}>
             commits
-            <span className="ml-1.5 text-[11px] tabular-nums text-muted-foreground">
-              {repo.commits.length}
-            </span>
+            <span className="ml-1.5 text-[11px] tabular-nums text-dim">{repo.commits.length}</span>
           </TabsTrigger>
           {(['pulls', 'issues', 'certs', 'events'] as const).map(id => (
-            <TabsTrigger
-              key={id}
-              value={id}
-              className="relative rounded-none border-b-2 border-transparent px-3 sm:px-4 py-3 text-[13px] sm:text-[14px] font-normal text-muted-foreground transition-colors data-[state=active]:border-[var(--color-warm)] data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none hover:text-foreground whitespace-nowrap"
-            >
+            <TabsTrigger key={id} value={id} className={TRIGGER_CLS}>
               {id}
-              {tabCounts[id] !== undefined && (
-                <span className="ml-1.5 text-[11px] tabular-nums text-muted-foreground">
-                  {tabCounts[id]}
+              {tabData[id].status === 'ready' && (
+                <span className="ml-1.5 text-[11px] tabular-nums text-dim">
+                  {tabData[id].items.length}
                 </span>
               )}
             </TabsTrigger>
@@ -196,12 +288,13 @@ export function DetailTabs({ repo }: DetailTabsProps) {
                     {idx < pathStack.length - 1 ? (
                       <button
                         onClick={() => navigateToBreadcrumb(idx)}
-                        className="text-[12px] font-mono text-muted-foreground hover:text-foreground transition-colors duration-100"
+                        className="text-[12px] text-muted-foreground hover:text-foreground transition-colors duration-100
+                          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
                       >
                         {idx === 0 ? 'root' : level.label}
                       </button>
                     ) : (
-                      <span className="text-[12px] font-mono text-foreground">{level.label}</span>
+                      <span className="text-[12px] text-foreground">{level.label}</span>
                     )}
                     {idx < pathStack.length - 1 && (
                       <span className="text-[12px] text-muted-foreground">/</span>
@@ -210,10 +303,11 @@ export function DetailTabs({ repo }: DetailTabsProps) {
                 ))}
               </div>
             )}
+            {dirError && (
+              <p className="m-0 mb-3 text-[12px] text-destructive">{dirError}</p>
+            )}
             {dirLoading ? (
-              <div className="flex items-center justify-center py-14">
-                <p className="text-[14px] text-muted-foreground animate-pulse">Loading…</p>
-              </div>
+              <TabLoading />
             ) : (
               <FileList files={currentDir.entries} onClickEntry={handleClickEntry} />
             )}
@@ -225,16 +319,16 @@ export function DetailTabs({ repo }: DetailTabsProps) {
         <CommitList commits={repo.commits} />
       </TabsContent>
       <TabsContent value="pulls" className="animate-fade-in mt-0">
-        <EmptyTab label="pull requests" />
+        {renderLazyTab('pulls', 'pull requests', () => <PullList items={tabData.pulls.items} />)}
       </TabsContent>
       <TabsContent value="issues" className="animate-fade-in mt-0">
-        <EmptyTab label="issues" />
+        {renderLazyTab('issues', 'issues', () => <IssueList items={tabData.issues.items} />)}
       </TabsContent>
       <TabsContent value="certs" className="animate-fade-in mt-0">
-        <EmptyTab label="certificates" />
+        {renderLazyTab('certs', 'certificates', () => <CertList items={tabData.certs.items} />)}
       </TabsContent>
       <TabsContent value="events" className="animate-fade-in mt-0">
-        <EmptyTab label="events" />
+        {renderLazyTab('events', 'events', () => <EventList items={tabData.events.items} />)}
       </TabsContent>
     </Tabs>
   );

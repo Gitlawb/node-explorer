@@ -7,14 +7,24 @@
 /* Maps project CSS variables to Tailwind v4 utility classes.
    @theme inline keeps values as var() refs so dark-mode overrides resolve at runtime. */
 @theme inline {
+  --font-sans: var(--font-mono-stack);
+  --font-mono: var(--font-mono-stack);
   --color-background:           var(--color-background);
   --color-foreground:           var(--color-foreground);
   --color-surface:              var(--color-surface);
   --color-muted:                var(--color-muted);
   --color-muted-foreground:     var(--color-muted-foreground);
   --color-border:               var(--color-border);
+  --color-border-inner:         var(--color-border-inner);
   --color-accent:               var(--color-accent);
   --color-accent-foreground:    var(--color-foreground);
+  --color-warm:                 var(--color-warm);
+  --color-warm-text:            var(--color-warm-text);
+  --color-ok:                   var(--color-ok);
+  --color-dim:                  var(--color-text-dim);
+  --color-hover:                var(--color-hover);
+  --color-status-dot:           var(--color-status-dot);
+  --color-surface-2:            var(--color-surface-2);
   /* ShadCN card */
   --color-card:                 var(--color-surface);
   --color-card-foreground:      var(--color-foreground);
@@ -32,56 +42,60 @@
   --color-popover-foreground:   var(--color-foreground);
   /* ShadCN input / ring */
   --color-input:                var(--color-border);
-  --color-ring:                 var(--color-accent);
-  /* radius */
-  --radius: 0.5rem;
+  --color-ring:                 var(--color-warm);
+  /* radius — near-square, terminal pills */
+  --radius: 0.125rem;
 }
 
 /* ── Design tokens ─────────────────────────────────────────────────────────── */
 
 :root {
-  /* Light mode */
-  --color-background:    #ffffff;
-  --color-foreground:    #09090b;
-  --color-surface:       #fafafa;
-  --color-surface-2:     #f4f4f5;
-  --color-muted:         #f4f4f5;
-  --color-muted-foreground: #71717a;
-  --color-border:        #e4e4e7;
-  --color-border-inner:  #efefef;
-  --color-text-primary:  #09090b;
-  --color-text-mid:      #52525b;
-  --color-text-muted:    #71717a;
-  --color-text-dim:      #a1a1aa;
-  --color-text-faint:    #d4d4d8;
+  --font-mono-stack: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Light mode (secondary theme — same structure as dark) */
+  --color-background:    #fafafa;
+  --color-foreground:    #111111;
+  --color-surface:       #f4f4f4;
+  --color-surface-2:     #efefef;
+  --color-muted:         #ececec;
+  --color-muted-foreground: #6b6b6b;
+  --color-border:        #e2e2e2;
+  --color-border-inner:  #ebebeb;
+  --color-grid:          #ededed;
+  --color-text-primary:  #111111;
+  --color-text-mid:      #4a4a4a;
+  --color-text-muted:    #6b6b6b;
+  --color-text-dim:      #9a9a9a;
+  --color-text-faint:    #cccccc;
   --color-warm:          #c9a96e;
   --color-warm-text:     #a07840;
   --color-accent:        #5e6ad2;
-  --color-dot:           rgba(0, 0, 0, 0.04);
-  --color-hover:         rgba(0, 0, 0, 0.025);
-  --color-status-dot:    #d4d4d8;
+  --color-ok:            #16a34a;
+  --color-hover:         rgba(0, 0, 0, 0.03);
+  --color-status-dot:    #cfcfcf;
 }
 
 .dark {
-  --color-background:    #09090b;
-  --color-foreground:    #fafafa;
-  --color-surface:       #111113;
-  --color-surface-2:     #0c0c10;
-  --color-muted:         #27272a;
-  --color-muted-foreground: #888898;
-  --color-border:        #1f1f23;
-  --color-border-inner:  #141418;
-  --color-text-primary:  #fafafa;
-  --color-text-mid:      #a1a1aa;
-  --color-text-muted:    #888898;
-  --color-text-dim:      #555568;
-  --color-text-faint:    #3a3a42;
+  --color-background:    #0a0a0a;
+  --color-foreground:    #f2f2f2;
+  --color-surface:       #0d0d0d;
+  --color-surface-2:     #0b0b0b;
+  --color-muted:         #161616;
+  --color-muted-foreground: #8a8a8a;
+  --color-border:        #1c1c1c;
+  --color-border-inner:  #141414;
+  --color-grid:          #131313;
+  --color-text-primary:  #f2f2f2;
+  --color-text-mid:      #a3a3a3;
+  --color-text-muted:    #8a8a8a;
+  --color-text-dim:      #555555;
+  --color-text-faint:    #3a3a3a;
   --color-warm:          #c9a96e;
   --color-warm-text:     #c9a96e;
   --color-accent:        #5e6ad2;
-  --color-dot:           rgba(255, 255, 255, 0.038);
-  --color-hover:         rgba(255, 255, 255, 0.02);
-  --color-status-dot:    #252530;
+  --color-ok:            #4ade80;
+  --color-hover:         rgba(255, 255, 255, 0.025);
+  --color-status-dot:    #2e2e2e;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
@@ -100,16 +114,13 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "rlig" 1, "calt" 1;
-  letter-spacing: -0.011em;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px;
+  font-family: var(--font-mono-stack);
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -118,7 +129,7 @@ body {
 }
 
 ::selection {
-  background: rgba(94, 106, 210, 0.25);
+  background: rgba(201, 169, 110, 0.28);
 }
 
 ::-webkit-scrollbar {
@@ -135,6 +146,32 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border);
   filter: brightness(1.2);
+}
+
+/* ── Terminal utilities ────────────────────────────────────────────────────── */
+
+/* Uppercase letter-spaced micro-label, as in the reference mockups */
+.micro-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+/* Blueprint grid texture for hero panels */
+.grid-lines {
+  background-image:
+    repeating-linear-gradient(to right, var(--color-grid) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(to bottom, var(--color-grid) 0 1px, transparent 1px 80px);
+}
+
+/* Native select chevron (replaces per-component inline background-image) */
+.select-chevron {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23888888' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
 }
 
 /* ── Animations ────────────────────────────────────────────────────────────── */
@@ -165,4 +202,11 @@ body {
 .animate-spin-icon {
   animation: spin 0.7s linear infinite;
   display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in {
+    animation: none;
+  }
 }

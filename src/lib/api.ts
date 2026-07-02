@@ -1,10 +1,20 @@
 const BASE_URL = '/api/v1';
 
+/**
+ * Server-side search/sort is only available on nodes that support q=/sort= on
+ * GET /repos. This is an explicit flag rather than feature detection: older
+ * nodes silently ignore unknown query params, which would make a search appear
+ * to return everything.
+ */
+export const SERVER_SEARCH_ENABLED = import.meta.env.VITE_SERVER_SEARCH === 'true';
+
+export type RepoSort = 'updated' | 'created' | 'oldest' | 'name' | 'stars';
+
 export interface ApiRepo {
   id: string;
   name: string;
   owner_did: string;
-  description: string;
+  description: string | null;
   is_public: boolean;
   default_branch: string;
   clone_url: string;
@@ -29,33 +39,127 @@ export interface ApiCommit {
   message: string;
 }
 
-let allReposCache: ApiRepo[] | null = null;
-let fetchAllPromise: Promise<ApiRepo[]> | null = null;
-
-export function invalidateReposCache() {
-  allReposCache = null;
-  fetchAllPromise = null;
+export interface ApiIssue {
+  id: string;
+  title: string;
+  body: string;
+  author: string;
+  created_at: string;
+  status: string;
 }
 
-export function fetchAllRepos(): Promise<ApiRepo[]> {
-  if (allReposCache !== null) return Promise.resolve(allReposCache);
-  if (!fetchAllPromise) {
-    fetchAllPromise = fetch(`${BASE_URL}/repos`)
-      .then(res => {
-        if (!res.ok) throw new Error(`Failed to fetch repos: ${res.status}`);
-        return res.json() as Promise<ApiRepo[]>;
-      })
-      .then(data => {
-        allReposCache = data;
-        fetchAllPromise = null;
-        return data;
-      })
-      .catch(err => {
-        fetchAllPromise = null;
-        throw err;
-      });
-  }
-  return fetchAllPromise;
+export interface ApiPull {
+  id: string;
+  number: number;
+  title: string;
+  body: string;
+  author_did: string;
+  source_branch: string;
+  target_branch: string;
+  status: string;
+  merged_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiRepoEvent {
+  type: string;
+  id: string;
+  repo: string;
+  ref_name: string;
+  old_sha: string;
+  new_sha: string;
+  pusher_did: string;
+  node_did: string;
+  timestamp: string;
+  source: string;
+}
+
+export interface ApiCert {
+  id: string;
+  repo_id: string;
+  ref_name: string;
+  old_sha: string;
+  new_sha: string;
+  pusher_did: string;
+  node_did: string;
+  signature: string;
+  issued_at: string;
+}
+
+export interface ApiAgent {
+  did: string;
+  capabilities: string[];
+  trust_score: number;
+  status: string;
+  last_seen: string | null;
+  registered_at: string;
+}
+
+export interface NodeStats {
+  agents: number;
+  pushes: number;
+  repos: number;
+  version: string;
+}
+
+export interface NodeInfo {
+  name: string;
+  did: string;
+  version: string;
+  network: string;
+  protocols: string[];
+}
+
+export interface RepoListParams {
+  limit: number;
+  offset: number;
+  owner?: string;
+  q?: string;
+  sort?: RepoSort;
+  signal?: AbortSignal;
+}
+
+export interface RepoListResult {
+  repos: ApiRepo[];
+  totalCount: number;
+}
+
+async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+export async function fetchRepos(params: RepoListParams): Promise<RepoListResult> {
+  const search = new URLSearchParams({
+    limit: String(params.limit),
+    offset: String(params.offset),
+  });
+  if (params.owner) search.set('owner', params.owner);
+  if (params.q) search.set('q', params.q);
+  if (params.sort && params.sort !== 'updated') search.set('sort', params.sort);
+
+  const res = await fetch(`${BASE_URL}/repos?${search}`, { signal: params.signal });
+  if (!res.ok) throw new Error(`Failed to fetch repos: ${res.status}`);
+  const repos = (await res.json()) as ApiRepo[];
+  const totalHeader = res.headers.get('X-Total-Count');
+  const totalCount = totalHeader !== null ? Number(totalHeader) : repos.length;
+  return { repos, totalCount };
+}
+
+export function fetchStats(signal?: AbortSignal): Promise<NodeStats> {
+  return getJson<NodeStats>(`${BASE_URL}/stats`, signal);
+}
+
+export function fetchNodeInfo(signal?: AbortSignal): Promise<NodeInfo> {
+  // Proxied to the node's root path (see vite.config.ts) — the SPA owns "/" locally.
+  return getJson<NodeInfo>('/node-info', signal);
+}
+
+export async function fetchAgents(signal?: AbortSignal): Promise<ApiAgent[]> {
+  const data = await getJson<{ agents: ApiAgent[] }>(`${BASE_URL}/agents`, signal);
+  return data.agents ?? [];
 }
 
 export async function fetchRepo(owner: string, name: string, signal?: AbortSignal): Promise<ApiRepo> {
@@ -70,24 +174,18 @@ export async function fetchRepo(owner: string, name: string, signal?: AbortSigna
   return data as ApiRepo;
 }
 
+function repoPath(owner: string, name: string, rest = ''): string {
+  return `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}${rest}`;
+}
+
 export async function fetchTree(owner: string, name: string, signal?: AbortSignal): Promise<ApiTreeEntry[]> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/tree`,
-    { signal },
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.entries as ApiTreeEntry[]) ?? [];
+  const data = await getJson<{ entries?: ApiTreeEntry[] }>(repoPath(owner, name, '/tree'), signal);
+  return data.entries ?? [];
 }
 
 export async function fetchCommits(owner: string, name: string, signal?: AbortSignal): Promise<ApiCommit[]> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/commits`,
-    { signal },
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.commits as ApiCommit[]) ?? [];
+  const data = await getJson<{ commits?: ApiCommit[] }>(repoPath(owner, name, '/commits'), signal);
+  return data.commits ?? [];
 }
 
 export async function fetchBlob(
@@ -96,10 +194,7 @@ export async function fetchBlob(
   path: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/blob/${path}`,
-    { signal },
-  );
+  const res = await fetch(repoPath(owner, name, `/blob/${path}`), { signal });
   if (!res.ok) throw new Error(`Failed to fetch file: ${res.status}`);
   return res.text();
 }
@@ -110,53 +205,51 @@ export async function fetchSubtree(
   subpath: string,
   signal?: AbortSignal,
 ): Promise<ApiTreeEntry[]> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/tree/${subpath}`,
-    { signal },
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.entries as ApiTreeEntry[]) ?? [];
+  const data = await getJson<{ entries?: ApiTreeEntry[] }>(repoPath(owner, name, `/tree/${subpath}`), signal);
+  return data.entries ?? [];
 }
 
-export async function fetchPulls(owner: string, name: string, signal?: AbortSignal): Promise<number> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/pulls`,
-    { signal },
-  );
-  if (!res.ok) return 0;
-  const data = await res.json();
-  return data.count ?? (data.pulls?.length ?? 0);
+export async function fetchPulls(owner: string, name: string, signal?: AbortSignal): Promise<ApiPull[]> {
+  const data = await getJson<{ pulls?: ApiPull[] }>(repoPath(owner, name, '/pulls'), signal);
+  return data.pulls ?? [];
 }
 
-export async function fetchIssues(owner: string, name: string, signal?: AbortSignal): Promise<number> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/issues`,
-    { signal },
-  );
-  if (!res.ok) return 0;
-  const data = await res.json();
-  return data.count ?? (data.issues?.length ?? 0);
+export async function fetchIssues(owner: string, name: string, signal?: AbortSignal): Promise<ApiIssue[]> {
+  const data = await getJson<{ issues?: ApiIssue[] }>(repoPath(owner, name, '/issues'), signal);
+  return data.issues ?? [];
 }
 
-export async function fetchEvents(owner: string, name: string, signal?: AbortSignal): Promise<number> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/events`,
-    { signal },
-  );
-  if (!res.ok) return 0;
-  const data = await res.json();
-  return data.count ?? (data.events?.length ?? 0);
+export async function fetchEvents(owner: string, name: string, signal?: AbortSignal): Promise<ApiRepoEvent[]> {
+  const data = await getJson<{ events?: ApiRepoEvent[] }>(repoPath(owner, name, '/events?limit=50'), signal);
+  return data.events ?? [];
 }
 
-export async function fetchCerts(owner: string, name: string, signal?: AbortSignal): Promise<number> {
-  const res = await fetch(
-    `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/certs`,
-    { signal },
-  );
-  if (!res.ok) return 0;
-  const data = await res.json();
-  return data.count ?? (data.certificates?.length ?? 0);
+export async function fetchCerts(owner: string, name: string, signal?: AbortSignal): Promise<ApiCert[]> {
+  const data = await getJson<{ certificates?: ApiCert[] }>(repoPath(owner, name, '/certs'), signal);
+  return data.certificates ?? [];
+}
+
+/** Short display form of a DID: last segment after ':', truncated (mockups show `z6Mkv79S/`). */
+export function shortDid(did: string): string {
+  const seg = did.split(':').pop() ?? did;
+  return seg.length > 8 ? seg.slice(0, 8) : seg;
+}
+
+/** Full key segment of a DID (after the last ':') — accepted by the API's owner= filter. */
+export function didKeySegment(did: string): string {
+  return did.split(':').pop() ?? did;
+}
+
+/** Trust tiers mirror the node's agents.rs thresholds. */
+export function trustTier(score: number): string {
+  if (score < 0.1) return 'newcomer';
+  if (score < 0.3) return 'contributor';
+  if (score < 0.7) return 'trusted';
+  return 'maintainer';
+}
+
+export function shortSha(sha: string): string {
+  return sha ? sha.slice(0, 7) : '—';
 }
 
 export function timeAgo(isoString: string): string {
@@ -212,12 +305,6 @@ export function mapApiRepo(
     author: c.author,
   }));
 
-  const files: RepoFile[] = treeEntries.map(e => ({
-    name: e.name,
-    size: formatFileSize(e.size),
-    type: e.type === 'blob' ? 'file' : 'dir',
-  }));
-
   return {
     id: apiRepo.id,
     owner: apiRepo.owner_did,
@@ -231,7 +318,9 @@ export function mapApiRepo(
     isMirror: apiRepo.forked_from !== null,
     latestCommit: mappedCommits[0],
     commits: mappedCommits,
-    files,
+    files: mapTreeEntriesToFiles(treeEntries),
     cloneUrl: apiRepo.clone_url,
+    updatedAtRaw: apiRepo.updated_at,
+    createdAtRaw: apiRepo.created_at,
   };
 }

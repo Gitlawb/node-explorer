@@ -15,14 +15,14 @@ interface CommitListProps {
 export function CommitList({ commits }: CommitListProps) {
   if (commits.length === 0) {
     return (
-      <div className="flex items-center justify-center py-14">
-        <p className="text-[14px] text-muted-foreground">No commits</p>
+      <div className="flex items-center justify-center py-14 border border-border">
+        <p className="m-0 text-[13px] text-muted-foreground">no commits yet</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border">
+    <div className="overflow-hidden border border-border">
       <Table>
         <TableHeader>
           <TableRow className="border-b border-border hover:bg-transparent">
@@ -47,10 +47,7 @@ export function CommitList({ commits }: CommitListProps) {
               className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors duration-100 cursor-default"
             >
               <TableCell className="px-4 sm:px-6 py-2.5 sm:py-3">
-                <span
-                  className="font-mono text-[12px] sm:text-[13px]"
-                  style={{ color: 'var(--color-warm)' }}
-                >
+                <span className="text-[12px] sm:text-[13px] text-warm">
                   {commit.shortHash}
                 </span>
               </TableCell>
