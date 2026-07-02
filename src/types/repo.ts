@@ -27,4 +27,7 @@ export interface Repository {
   commits: RepoCommit[];
   files: RepoFile[];
   cloneUrl: string;
+  /** ISO timestamps kept for client-side sorting */
+  updatedAtRaw: string;
+  createdAtRaw: string;
 }

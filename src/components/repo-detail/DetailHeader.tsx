@@ -1,88 +1,63 @@
 import type { Repository } from '../../types/repo';
+import { shortDid } from '../../lib/api';
 import { CopyButton } from '../ui/CopyButton';
-import { Badge } from '../ui/badge';
-import { Card, CardContent } from '../ui/card';
+import { Pill } from '../ui/Pill';
+import { MicroLabel } from '../ui/MicroLabel';
 
 interface DetailHeaderProps {
   repo: Repository;
 }
 
 export function DetailHeader({ repo }: DetailHeaderProps) {
-  const fullDid = `did:key:${repo.owner}`;
+  // repo.owner is already the full DID (did:key:z6Mk…)
+  const fullDid = repo.owner;
 
   return (
     <div className="min-w-0">
       {/* Title */}
-      <h1 className="text-[22px] sm:text-[30px] lg:text-[42px] font-bold tracking-[-0.03em] leading-tight mb-3 text-foreground break-words">
-        {repo.owner}/{repo.name}
+      <h1 className="text-[24px] sm:text-[32px] lg:text-[40px] font-bold leading-tight mb-4 break-words">
+        <span className="text-dim">{shortDid(repo.owner)}/</span>
+        <span className="text-foreground">{repo.name}</span>
       </h1>
 
       {/* Badges */}
-      <div className="flex items-center gap-2 mb-4 sm:mb-5 flex-wrap">
-        <Badge
-          variant="outline"
-          className="border-border text-foreground bg-transparent text-[12px] font-medium px-2.5 py-0.5 rounded-md"
-        >
-          {repo.branch}
-        </Badge>
-        <Badge
-          variant="outline"
-          className="border-border text-foreground bg-transparent text-[12px] font-medium px-2.5 py-0.5 rounded-md"
-        >
-          {repo.visibility}
-        </Badge>
-        <Badge
-          variant="outline"
-          className="border-border text-foreground bg-transparent text-[12px] font-medium px-2.5 py-0.5 rounded-md"
-        >
-          {repo.stars === 1 ? '1 star' : `${repo.stars} stars`}
-        </Badge>
-        {repo.isMirror && (
-          <Badge
-            variant="outline"
-            className="border-border text-foreground bg-transparent text-[12px] font-medium px-2.5 py-0.5 rounded-md"
-          >
-            mirror
-          </Badge>
-        )}
+      <div className="flex items-center gap-1.5 mb-5 flex-wrap">
+        <Pill>{repo.branch}</Pill>
+        <Pill>{repo.visibility}</Pill>
+        <Pill>{repo.stars === 1 ? '1 star' : `${repo.stars} stars`}</Pill>
+        {repo.isMirror && <Pill>fork</Pill>}
       </div>
 
       {/* Description */}
-      <p className="text-[14px] sm:text-[15px] leading-[1.75] mb-6 sm:mb-7 max-w-[560px] text-foreground">
-        {repo.description}
-      </p>
+      {repo.description && (
+        <p className="m-0 text-[13px] sm:text-[14px] leading-[1.75] mb-6 sm:mb-7 max-w-[560px] text-muted-foreground">
+          {repo.description}
+        </p>
+      )}
 
-      {/* Owner/dates card */}
-      <Card className="border-border bg-card overflow-hidden">
-        <CardContent className="p-0">
-          {/* Owner row */}
-          <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
-            <span className="text-[11px] uppercase tracking-[0.08em] font-semibold w-[60px] sm:w-[68px] flex-shrink-0 text-muted-foreground">
-              Owner
-            </span>
-            <span className="font-mono text-[11px] sm:text-[13px] flex-1 truncate min-w-0 text-foreground">
-              {fullDid}
-            </span>
-            <CopyButton value={fullDid} label="copy" />
-          </div>
+      {/* Owner/dates panel */}
+      <div className="border border-border">
+        {/* Owner row */}
+        <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-border-inner">
+          <MicroLabel className="w-[64px] flex-shrink-0">owner</MicroLabel>
+          <span className="text-[11px] sm:text-[12.5px] flex-1 truncate min-w-0 text-foreground">
+            {fullDid}
+          </span>
+          <CopyButton value={fullDid} label="copy" />
+        </div>
 
-          {/* Dates row */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-7 px-4 sm:px-6 py-3 sm:py-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-[11px] uppercase tracking-[0.08em] font-semibold w-[60px] sm:w-[68px] flex-shrink-0 text-muted-foreground">
-                Updated
-              </span>
-              <span className="text-[13px] sm:text-[14px] text-foreground">{repo.updatedAt}</span>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-[11px] uppercase tracking-[0.08em] font-semibold w-[50px] sm:w-[58px] flex-shrink-0 text-muted-foreground">
-                Created
-              </span>
-              <span className="text-[13px] sm:text-[14px] text-foreground">{repo.createdAt}</span>
-            </div>
+        {/* Dates row */}
+        <div className="flex flex-wrap items-center gap-4 sm:gap-8 px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center gap-3">
+            <MicroLabel className="w-[64px] flex-shrink-0">updated</MicroLabel>
+            <span className="text-[12.5px] text-foreground tabular-nums">{repo.updatedAt}</span>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-3">
+            <MicroLabel className="flex-shrink-0">created</MicroLabel>
+            <span className="text-[12.5px] text-foreground tabular-nums">{repo.createdAt}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

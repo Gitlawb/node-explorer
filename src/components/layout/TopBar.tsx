@@ -1,27 +1,37 @@
+import { Link } from 'react-router-dom';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { Pill } from '../ui/Pill';
+import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 export default function TopBar() {
+  const { node, stats } = useNodeStatus();
+
   return (
-    <header className="sticky top-0 z-50 h-14 border-b border-border/60 backdrop-blur-sm bg-background/95">
-      <div className="mx-auto flex h-full max-w-7xl items-center gap-6 px-4 sm:px-6">
+    <header className="sticky top-0 z-50 h-14 border-b border-border backdrop-blur-sm bg-background/95">
+      <div className="mx-auto flex h-full max-w-[1280px] items-center gap-4 px-4 sm:px-8 lg:px-12">
 
         {/* Left: branding */}
-        <div className="flex flex-col shrink-0">
-          <span className="text-sm font-semibold text-foreground leading-tight">Node Explorer</span>
-          <span className="text-xs text-muted-foreground leading-tight max-sm:hidden">Browse live repositories</span>
-        </div>
+        <Link
+          to="/repos"
+          className="flex items-center gap-3 shrink-0 min-w-0
+            focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+        >
+          <span className="text-[13px] font-bold text-foreground whitespace-nowrap">
+            gitlawb node explorer
+          </span>
+        </Link>
+        {node?.network && <Pill className="max-sm:hidden">{node.network}</Pill>}
 
         <div className="flex-1" />
 
-        {/* Right: theme toggle + avatar */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right: live counts + theme */}
+        <div className="flex items-center gap-4 shrink-0">
+          {stats && (
+            <span className="hidden md:inline text-[11px] tabular-nums text-muted-foreground">
+              {stats.repos.toLocaleString()} repos · {stats.agents.toLocaleString()} agents
+            </span>
+          )}
           <ThemeToggle />
-          <button
-            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Node identity"
-          >
-            NE
-          </button>
         </div>
 
       </div>

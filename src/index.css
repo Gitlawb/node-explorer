@@ -7,14 +7,24 @@
 /* Maps project CSS variables to Tailwind v4 utility classes.
    @theme inline keeps values as var() refs so dark-mode overrides resolve at runtime. */
 @theme inline {
+  --font-sans: var(--font-mono-stack);
+  --font-mono: var(--font-mono-stack);
   --color-background:           var(--color-background);
   --color-foreground:           var(--color-foreground);
   --color-surface:              var(--color-surface);
   --color-muted:                var(--color-muted);
   --color-muted-foreground:     var(--color-muted-foreground);
   --color-border:               var(--color-border);
+  --color-border-inner:         var(--color-border-inner);
   --color-accent:               var(--color-accent);
   --color-accent-foreground:    var(--color-foreground);
+  --color-warm:                 var(--color-warm);
+  --color-warm-text:            var(--color-warm-text);
+  --color-ok:                   var(--color-ok);
+  --color-dim:                  var(--color-text-dim);
+  --color-hover:                var(--color-hover);
+  --color-status-dot:           var(--color-status-dot);
+  --color-surface-2:            var(--color-surface-2);
   /* ShadCN card */
   --color-card:                 var(--color-surface);
   --color-card-foreground:      var(--color-foreground);
@@ -32,56 +42,60 @@
   --color-popover-foreground:   var(--color-foreground);
   /* ShadCN input / ring */
   --color-input:                var(--color-border);
-  --color-ring:                 var(--color-accent);
-  /* radius */
-  --radius: 0.5rem;
+  --color-ring:                 var(--color-warm);
+  /* radius — near-square, terminal pills */
+  --radius: 0.125rem;
 }
 
 /* ── Design tokens ─────────────────────────────────────────────────────────── */
 
 :root {
-  /* Light mode */
-  --color-background:    #ffffff;
-  --color-foreground:    #09090b;
-  --color-surface:       #fafafa;
-  --color-surface-2:     #f4f4f5;
-  --color-muted:         #f4f4f5;
-  --color-muted-foreground: #71717a;
-  --color-border:        #e4e4e7;
-  --color-border-inner:  #efefef;
-  --color-text-primary:  #09090b;
-  --color-text-mid:      #52525b;
-  --color-text-muted:    #71717a;
-  --color-text-dim:      #a1a1aa;
-  --color-text-faint:    #d4d4d8;
+  --font-mono-stack: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Light mode (secondary theme — same structure as dark) */
+  --color-background:    #fafafa;
+  --color-foreground:    #111111;
+  --color-surface:       #f4f4f4;
+  --color-surface-2:     #efefef;
+  --color-muted:         #ececec;
+  --color-muted-foreground: #6b6b6b;
+  --color-border:        #e2e2e2;
+  --color-border-inner:  #ebebeb;
+  --color-grid:          #ededed;
+  --color-text-primary:  #111111;
+  --color-text-mid:      #4a4a4a;
+  --color-text-muted:    #6b6b6b;
+  --color-text-dim:      #9a9a9a;
+  --color-text-faint:    #cccccc;
   --color-warm:          #c9a96e;
   --color-warm-text:     #a07840;
   --color-accent:        #5e6ad2;
-  --color-dot:           rgba(0, 0, 0, 0.04);
-  --color-hover:         rgba(0, 0, 0, 0.025);
-  --color-status-dot:    #d4d4d8;
+  --color-ok:            #16a34a;
+  --color-hover:         rgba(0, 0, 0, 0.03);
+  --color-status-dot:    #cfcfcf;
 }
 
 .dark {
-  --color-background:    #09090b;
-  --color-foreground:    #fafafa;
-  --color-surface:       #111113;
-  --color-surface-2:     #0c0c10;
-  --color-muted:         #27272a;
-  --color-muted-foreground: #888898;
-  --color-border:        #1f1f23;
-  --color-border-inner:  #141418;
-  --color-text-primary:  #fafafa;
-  --color-text-mid:      #a1a1aa;
-  --color-text-muted:    #888898;
-  --color-text-dim:      #555568;
-  --color-text-faint:    #3a3a42;
+  --color-background:    #0a0a0a;
+  --color-foreground:    #f2f2f2;
+  --color-surface:       #0d0d0d;
+  --color-surface-2:     #0b0b0b;
+  --color-muted:         #161616;
+  --color-muted-foreground: #8a8a8a;
+  --color-border:        #1c1c1c;
+  --color-border-inner:  #141414;
+  --color-grid:          #131313;
+  --color-text-primary:  #f2f2f2;
+  --color-text-mid:      #a3a3a3;
+  --color-text-muted:    #8a8a8a;
+  --color-text-dim:      #555555;
+  --color-text-faint:    #3a3a3a;
   --color-warm:          #c9a96e;
   --color-warm-text:     #c9a96e;
   --color-accent:        #5e6ad2;
-  --color-dot:           rgba(255, 255, 255, 0.038);
-  --color-hover:         rgba(255, 255, 255, 0.02);
-  --color-status-dot:    #252530;
+  --color-ok:            #4ade80;
+  --color-hover:         rgba(255, 255, 255, 0.025);
+  --color-status-dot:    #2e2e2e;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
@@ -100,16 +114,13 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "rlig" 1, "calt" 1;
-  letter-spacing: -0.011em;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px;
+  font-family: var(--font-mono-stack);
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -118,7 +129,7 @@ body {
 }
 
 ::selection {
-  background: rgba(94, 106, 210, 0.25);
+  background: rgba(201, 169, 110, 0.28);
 }
 
 ::-webkit-scrollbar {
@@ -136,6 +147,246 @@ body {
   background: var(--color-border);
   filter: brightness(1.2);
 }
+
+/* ── Terminal utilities ────────────────────────────────────────────────────── */
+
+/* Uppercase letter-spaced micro-label, as in the reference mockups */
+.micro-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+/* Blueprint grid texture for hero panels */
+.grid-lines {
+  background-image:
+    repeating-linear-gradient(to right, var(--color-grid) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(to bottom, var(--color-grid) 0 1px, transparent 1px 80px);
+}
+
+/* Keyboard key chip (cheatsheet, hints) */
+.kbd {
+  font-family: var(--font-mono-stack);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-foreground);
+  border: 1px solid var(--color-text-dim);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  padding: 3px 6px;
+  min-width: 22px;
+  text-align: center;
+  display: inline-block;
+}
+
+/* Native select chevron (replaces per-component inline background-image) */
+.select-chevron {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23888888' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+/* ── README / markdown typography (.markdown-gl) ─────────────────────────────
+   Ported from web/src/app/globals.css, re-based on explorer tokens (terminal
+   scale, 2px radii, warm-accent links, class-based dark mode). */
+.markdown-gl {
+  font-family: var(--font-mono-stack);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-mid);
+  word-wrap: break-word;
+}
+.markdown-gl > *:first-child { margin-top: 0 !important; }
+.markdown-gl > *:last-child  { margin-bottom: 0 !important; }
+
+.markdown-gl p, .markdown-gl blockquote, .markdown-gl ul, .markdown-gl ol,
+.markdown-gl table, .markdown-gl pre, .markdown-gl details {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.markdown-gl h1, .markdown-gl h2, .markdown-gl h3,
+.markdown-gl h4, .markdown-gl h5, .markdown-gl h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-foreground);
+  scroll-margin-top: 4rem;
+}
+.markdown-gl h1 { font-size: 1.75em; padding-bottom: 0.3em; border-bottom: 1px solid var(--color-border); }
+.markdown-gl h2 { font-size: 1.4em;  padding-bottom: 0.3em; border-bottom: 1px solid var(--color-border); }
+.markdown-gl h3 { font-size: 1.2em; }
+.markdown-gl h4 { font-size: 1em; }
+.markdown-gl h5 { font-size: 0.875em; }
+.markdown-gl h6 { font-size: 0.85em; color: var(--color-muted-foreground); }
+
+.markdown-gl strong { color: var(--color-foreground); font-weight: 700; }
+.markdown-gl a {
+  color: var(--color-foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--color-warm) 45%, transparent);
+}
+.markdown-gl a:hover { color: var(--color-warm-text); text-decoration-color: var(--color-warm); }
+.markdown-gl del { color: var(--color-muted-foreground); }
+
+.markdown-gl ul, .markdown-gl ol { padding-left: 2em; }
+.markdown-gl ul { list-style: disc; }
+.markdown-gl ol { list-style: decimal; }
+.markdown-gl li + li { margin-top: 0.25em; }
+.markdown-gl li > ul, .markdown-gl li > ol { margin: 0.25rem 0 0; }
+.markdown-gl li > p { margin-bottom: 0.5rem; }
+.markdown-gl li:has(> input[type="checkbox"]:first-child) { list-style: none; margin-left: -1.5em; }
+.markdown-gl input[type="checkbox"] { margin-right: 0.5em; accent-color: var(--color-warm); }
+
+.markdown-gl blockquote {
+  padding: 0 1em;
+  border-left: 0.25em solid var(--color-border);
+  color: var(--color-muted-foreground);
+}
+.markdown-gl blockquote > :last-child { margin-bottom: 0; }
+
+.markdown-gl hr {
+  height: 1px;
+  padding: 0;
+  margin: 1.5rem 0;
+  background: var(--color-border);
+  border: 0;
+}
+
+.markdown-gl code {
+  font-family: var(--font-mono-stack);
+  font-size: 85%;
+  color: var(--color-foreground);
+  background: var(--color-muted);
+  padding: 0.2em 0.4em;
+  border-radius: 2px;
+}
+.markdown-gl pre {
+  font-family: var(--font-mono-stack);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-mid);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+.markdown-gl pre code {
+  display: inline;
+  padding: 0;
+  font-size: 100%;
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+
+.markdown-gl table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-spacing: 0;
+  border-collapse: collapse;
+  font-size: 1em;
+}
+.markdown-gl th, .markdown-gl td {
+  padding: 6px 13px;
+  border: 1px solid var(--color-border);
+}
+.markdown-gl th { color: var(--color-foreground); font-weight: 700; text-align: left; }
+.markdown-gl tbody tr:nth-child(2n) { background: var(--color-hover); }
+
+.markdown-gl img { max-width: 100%; height: auto; display: inline-block; vertical-align: middle; }
+
+.markdown-gl details { border: 1px solid var(--color-border); border-radius: 2px; padding: 0.5rem 1rem; }
+.markdown-gl details[open] { padding-bottom: 1rem; }
+.markdown-gl summary { cursor: pointer; color: var(--color-foreground); font-weight: 700; }
+
+.markdown-gl kbd {
+  font-family: var(--font-mono-stack);
+  font-size: 0.8125em;
+  border: 1px solid var(--color-text-dim);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  padding: 0.1em 0.4em;
+}
+
+/* GitHub-style alerts (marked-alert) — monochrome: hierarchy via border
+   weight + ::before glyph. \FE0E forces text presentation. */
+.markdown-gl .markdown-alert {
+  padding: 0.5rem 1em;
+  margin-bottom: 1rem;
+  border-left: 0.25em solid var(--color-text-dim);
+  color: var(--color-muted-foreground);
+}
+.markdown-gl .markdown-alert > :last-child { margin-bottom: 0; }
+.markdown-gl .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--color-foreground);
+}
+.markdown-gl .markdown-alert-title::before { font-family: var(--font-mono-stack); line-height: 1; }
+.markdown-gl .markdown-alert-note      .markdown-alert-title::before { content: "\2139\FE0E"; }
+.markdown-gl .markdown-alert-tip       .markdown-alert-title::before { content: "\2726"; }
+.markdown-gl .markdown-alert-important .markdown-alert-title::before { content: "\203C\FE0E"; }
+.markdown-gl .markdown-alert-warning   .markdown-alert-title::before { content: "\26A0\FE0E"; }
+.markdown-gl .markdown-alert-caution   .markdown-alert-title::before { content: "\2715"; }
+.markdown-gl .markdown-alert-warning,
+.markdown-gl .markdown-alert-caution { border-left-color: var(--color-warm); }
+
+/* Footnotes (marked-footnote) */
+.markdown-gl .footnotes {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+}
+.markdown-gl .footnotes ol { margin-bottom: 0; }
+.markdown-gl .footnotes p { display: inline; margin: 0; }
+.markdown-gl sup a[data-footnote-ref] { text-decoration: none; font-weight: 700; padding: 0 0.15em; }
+.markdown-gl a[data-footnote-backref] { text-decoration: none; }
+.markdown-gl .sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ── Syntax tokens (shiki sentinel colors → semantic classes) ────────────────
+   src/lib/highlight.ts emits class-only spans; these own the real colors.
+   Light values in :root, dark overrides under .dark. */
+.tok-kw   { color: #2563eb; }
+.tok-str  { color: #15803d; }
+.tok-type { color: #a16207; }
+.tok-num  { color: #a16207; }
+.tok-fn   { color: var(--color-foreground); }
+.tok-prop { color: var(--color-text-mid); }
+.tok-cmt  { color: var(--color-text-dim); font-style: italic; }
+.tok-punc { color: var(--color-muted-foreground); }
+.dark .tok-kw   { color: #60a5fa; }
+.dark .tok-str  { color: #4ade80; }
+.dark .tok-type { color: #facc15; }
+.dark .tok-num  { color: #facc15; }
+
+/* ── Code viewer table ──────────────────────────────────────────────────────── */
+.code-table { border-collapse: collapse; }
+.code-table td { padding-top: 0; padding-bottom: 0; }
+.code-table tr:target { background: color-mix(in srgb, var(--color-warm) 12%, transparent); }
+.code-table tr:target td:first-child a { color: var(--color-warm-text); }
+/* Class-driven range highlight (#L10-L25 + gutter clicks); :target stays as
+   a no-JS fallback for bare #L37 links */
+.code-table tr.line-hl { background: color-mix(in srgb, var(--color-warm) 12%, transparent); }
+.code-table tr.line-hl td:first-child a { color: var(--color-warm-text); }
 
 /* ── Animations ────────────────────────────────────────────────────────────── */
 
@@ -165,4 +416,11 @@ body {
 .animate-spin-icon {
   animation: spin 0.7s linear infinite;
   display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in {
+    animation: none;
+  }
 }

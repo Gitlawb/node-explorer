@@ -13,9 +13,16 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://gitlawb-node-test.fly.dev',
+        target: 'https://node.gitlawb.com',
         changeOrigin: true,
         secure: true,
+      },
+      // Node identity lives at the node's root path, which the SPA occupies locally.
+      '/node-info': {
+        target: 'https://node.gitlawb.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: () => '/',
       },
     },
   },

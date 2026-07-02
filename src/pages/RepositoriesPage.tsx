@@ -1,59 +1,66 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { DEFAULT_PER_PAGE } from '../lib/mock-data';
+import { useMemo, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useListNav } from '../hooks/useShortcuts';
+import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
+import type { RepoSort } from '../lib/api';
 import { useRepositories } from '../hooks/useRepositories';
-import { RepoTable } from '../components/repos/RepoTable';
+import { useRefreshKey } from '../hooks/useRefreshKey';
+import { RepoList } from '../components/repos/RepoList';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
-import { InputGroup, InputGroupInput, InputGroupAddon } from '../components/ui/input-group';
+import { RepoToolbar } from '../components/repos/RepoToolbar';
+import type { ForkFilter } from '../components/repos/RepoToolbar';
+import { ExploreTabs } from '../components/layout/ExploreTabs';
+import { Pill } from '../components/ui/Pill';
 
-function SearchIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true" className="text-muted-foreground">
-      <path d="m21 21-4.34-4.34" />
-      <circle cx="11" cy="11" r="8" />
-    </svg>
-  );
-}
+const SORTS: RepoSort[] = ['updated', 'created', 'oldest', 'name', 'stars'];
+const FORK_FILTERS: ForkFilter[] = ['all', 'forks', 'sources'];
 
 export default function RepositoriesPage() {
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const location = useLocation();
   const search = searchParams.get('q') ?? '';
+  const owner = searchParams.get('owner') ?? '';
+  const rawPage = Number(searchParams.get('page'));
+  const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+  const rawPer = Number(searchParams.get('per'));
+  const perPage = PER_PAGE_OPTIONS.includes(rawPer) ? rawPer : DEFAULT_PER_PAGE;
+  const rawSort = searchParams.get('sort') as RepoSort | null;
+  const sort: RepoSort = rawSort && SORTS.includes(rawSort) ? rawSort : 'updated';
+  const rawFork = searchParams.get('fork') as ForkFilter | null;
+  const forkFilter: ForkFilter = rawFork && FORK_FILTERS.includes(rawFork) ? rawFork : 'all';
 
-  const handleSearch = (val: string) => {
-    const dest = val ? `/repos?q=${encodeURIComponent(val)}` : '/repos';
-    navigate(dest, { replace: location.pathname === '/repos' });
-  };
+  const { refreshKey, refresh } = useRefreshKey();
 
-  useEffect(() => { setPage(1); }, [search]);
+  const setParams = useCallback(
+    (updates: Record<string, string | null>, replace = false) => {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(updates)) {
+          if (value === null || value === '') next.delete(key);
+          else next.set(key, value);
+        }
+        return next;
+      }, { replace });
+    },
+    [setSearchParams],
+  );
 
-  const { repos, totalCount, totalPages, windowStart, windowEnd, loading, error } = useRepositories({
-    page,
-    perPage,
-    search,
-    refreshKey,
-  });
+  const { repos, totalCount, totalPages, windowStart, windowEnd, loading, error, searchScope } =
+    useRepositories({ page, perPage, search, sort, owner, refreshKey });
 
-  const handlePerPageChange = (n: number) => {
-    setPerPage(n);
-    setPage(1);
-  };
+  const visibleRepos = useMemo(() => {
+    if (!repos || forkFilter === 'all') return repos;
+    return repos.filter(r => (forkFilter === 'forks' ? r.isMirror : !r.isMirror));
+  }, [repos, forkFilter]);
 
-  const handleRefresh = () => {
-    if (loading) return;
-    setRefreshKey(k => k + 1);
-  };
+  const listRef = useRef<HTMLDivElement>(null);
+  useListNav(listRef);
 
   return (
-    <div className="max-w-[1520px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
+
+      <ExploreTabs />
 
       <RepoHero
         totalCount={totalCount}
@@ -62,56 +69,58 @@ export default function RepositoriesPage() {
         windowStart={windowStart}
         windowEnd={windowEnd}
         refreshing={loading}
-        onRefresh={handleRefresh}
+        onRefresh={refresh}
       />
 
-      <div className="pt-7 pb-24">
+      <div className="pt-8 pb-20">
 
-        {/* Count line */}
-        <div className="flex items-center justify-between mb-5 px-1 h-10">
-          <span className="text-[13px] text-muted-foreground font-mono tabular-nums">
-            {loading
-              ? 'Loading…'
-              : error
-                ? <span className="text-red-500">Error: {error}</span>
-                : search
-                  ? `${totalCount} ${totalCount === 1 ? 'result' : 'results'}`
-                  : `${windowStart}–${windowEnd} of ${totalCount.toLocaleString()}`
-            }
-          </span>
-        </div>
+        <RepoToolbar
+          search={search}
+          onSearchChange={v => setParams({ q: v, page: null }, true)}
+          sort={sort}
+          onSortChange={v => setParams({ sort: v === 'updated' ? null : v })}
+          forkFilter={forkFilter}
+          onForkFilterChange={v => setParams({ fork: v === 'all' ? null : v })}
+          searchScope={searchScope}
+          loadedCount={repos?.length ?? 0}
+        />
 
-        {/* Search */}
-        <div className="mb-4">
-          <InputGroup>
-            <InputGroupAddon align="inline-start">
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              type="text"
-              value={search}
-              onChange={e => handleSearch(e.target.value)}
-              placeholder="Search repositories…"
-              className="pl-11"
+        {/* Owner filter chip */}
+        {owner && (
+          <div className="flex items-center gap-2 mb-4">
+            <span className="micro-label">owner</span>
+            <Pill onClick={() => setParams({ owner: null, page: null })} aria-label={`clear owner filter ${owner}`}>
+              {owner.length > 16 ? `${owner.slice(0, 16)}…` : owner} ✕
+            </Pill>
+          </div>
+        )}
+
+        {error ? (
+          <div className="border border-border py-16 text-center">
+            <p className="m-0 text-[13px] text-destructive mb-4">failed to load repositories: {error}</p>
+            <Pill onClick={refresh}>retry</Pill>
+          </div>
+        ) : (
+          <>
+            <div ref={listRef}>
+              <RepoList
+                repos={visibleRepos}
+                loading={loading}
+                skeletonCount={Math.min(perPage, 12)}
+                emptyMessage={search || forkFilter !== 'all' ? 'no repositories match' : 'no repositories yet'}
+              />
+            </div>
+            <RepoPagination
+              page={page}
+              totalPages={totalPages}
+              perPage={perPage}
+              totalCount={totalCount}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              onPageChange={p => setParams({ page: p <= 1 ? null : String(p) })}
+              onPerPageChange={n => setParams({ per: n === DEFAULT_PER_PAGE ? null : String(n), page: null })}
             />
-          </InputGroup>
-        </div>
-
-        {/* Table */}
-        <RepoTable repos={repos} loading={loading} />
-
-        {/* Pagination */}
-        {!search && !loading && !error && (
-          <RepoPagination
-            page={page}
-            totalPages={totalPages}
-            perPage={perPage}
-            totalCount={totalCount}
-            windowStart={windowStart}
-            windowEnd={windowEnd}
-            onPageChange={setPage}
-            onPerPageChange={handlePerPageChange}
-          />
+          </>
         )}
 
       </div>

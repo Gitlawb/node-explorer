@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import RepositoriesPage from './pages/RepositoriesPage';
 import RepositoryDetailPage from './pages/RepositoryDetailPage';
+import AgentsPage from './pages/AgentsPage';
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/repos" replace />} />
         <Route element={<AppLayout />}>
           <Route path="/repos" element={<RepositoriesPage />} />
+          <Route path="/agents" element={<AgentsPage />} />
           <Route path="/repos/:owner/:name" element={<RepositoryDetailPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/repos" replace />} />

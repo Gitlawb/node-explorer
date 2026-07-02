@@ -35,14 +35,14 @@ function FileIcon({ type }: { type: 'file' | 'dir' }) {
 export function FileList({ files, onClickEntry }: FileListProps) {
   if (files.length === 0) {
     return (
-      <div className="flex items-center justify-center py-14">
-        <p className="text-[14px] text-muted-foreground">No files</p>
+      <div className="flex items-center justify-center py-14 border border-border">
+        <p className="m-0 text-[13px] text-muted-foreground">no files</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border min-w-0">
+    <div className="overflow-hidden border border-border min-w-0">
       <Table>
         <TableHeader>
           <TableRow className="border-b border-border hover:bg-transparent">
@@ -63,14 +63,20 @@ export function FileList({ files, onClickEntry }: FileListProps) {
             >
               <TableCell className="px-4 sm:px-6 py-2.5 sm:py-3">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <span
-                    className="w-[6px] h-[6px] rounded-full flex-shrink-0"
-                    style={{ backgroundColor: 'var(--color-status-dot)' }}
-                  />
+                  <span className="w-[6px] h-[6px] rounded-full flex-shrink-0 bg-status-dot" />
                   <FileIcon type={file.type} />
-                  <span className="text-[13px] sm:text-[14px] font-mono text-foreground">
-                    {file.name}
-                  </span>
+                  {onClickEntry ? (
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); onClickEntry(file); }}
+                      className="text-[13px] sm:text-[14px] text-foreground text-left cursor-pointer
+                        focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+                    >
+                      {file.name}
+                    </button>
+                  ) : (
+                    <span className="text-[13px] sm:text-[14px] text-foreground">{file.name}</span>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="px-4 sm:px-6 py-2.5 sm:py-3 text-right">
