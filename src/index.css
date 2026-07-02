@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/* Class-based dark mode — toggled by adding/removing .dark on <html> */
+@custom-variant dark (&:is(.dark, .dark *));
+
+/* ── ShadCN theme bridge ────────────────────────────────────────────────────── */
+/* Maps project CSS variables to Tailwind v4 utility classes.
+   @theme inline keeps values as var() refs so dark-mode overrides resolve at runtime. */
+@theme inline {
+  --color-background:           var(--color-background);
+  --color-foreground:           var(--color-foreground);
+  --color-surface:              var(--color-surface);
+  --color-muted:                var(--color-muted);
+  --color-muted-foreground:     var(--color-muted-foreground);
+  --color-border:               var(--color-border);
+  --color-accent:               var(--color-accent);
+  --color-accent-foreground:    var(--color-foreground);
+  /* ShadCN card */
+  --color-card:                 var(--color-surface);
+  --color-card-foreground:      var(--color-foreground);
+  /* ShadCN primary — white text on dark */
+  --color-primary:              var(--color-foreground);
+  --color-primary-foreground:   var(--color-background);
+  /* ShadCN secondary */
+  --color-secondary:            var(--color-muted);
+  --color-secondary-foreground: var(--color-foreground);
+  /* ShadCN destructive */
+  --color-destructive:          #ef4444;
+  --color-destructive-foreground: #fafafa;
+  /* ShadCN popover */
+  --color-popover:              var(--color-surface);
+  --color-popover-foreground:   var(--color-foreground);
+  /* ShadCN input / ring */
+  --color-input:                var(--color-border);
+  --color-ring:                 var(--color-accent);
+  /* radius */
+  --radius: 0.5rem;
+}
+
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
+
+:root {
+  /* Light mode */
+  --color-background:    #ffffff;
+  --color-foreground:    #09090b;
+  --color-surface:       #fafafa;
+  --color-surface-2:     #f4f4f5;
+  --color-muted:         #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-border:        #e4e4e7;
+  --color-border-inner:  #efefef;
+  --color-text-primary:  #09090b;
+  --color-text-mid:      #52525b;
+  --color-text-muted:    #71717a;
+  --color-text-dim:      #a1a1aa;
+  --color-text-faint:    #d4d4d8;
+  --color-warm:          #c9a96e;
+  --color-warm-text:     #a07840;
+  --color-accent:        #5e6ad2;
+  --color-dot:           rgba(0, 0, 0, 0.04);
+  --color-hover:         rgba(0, 0, 0, 0.025);
+  --color-status-dot:    #d4d4d8;
+}
+
+.dark {
+  --color-background:    #09090b;
+  --color-foreground:    #fafafa;
+  --color-surface:       #111113;
+  --color-surface-2:     #0c0c10;
+  --color-muted:         #27272a;
+  --color-muted-foreground: #888898;
+  --color-border:        #1f1f23;
+  --color-border-inner:  #141418;
+  --color-text-primary:  #fafafa;
+  --color-text-mid:      #a1a1aa;
+  --color-text-muted:    #888898;
+  --color-text-dim:      #555568;
+  --color-text-faint:    #3a3a42;
+  --color-warm:          #c9a96e;
+  --color-warm-text:     #c9a96e;
+  --color-accent:        #5e6ad2;
+  --color-dot:           rgba(255, 255, 255, 0.038);
+  --color-hover:         rgba(255, 255, 255, 0.02);
+  --color-status-dot:    #252530;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  border-color: var(--color-border);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "rlig" 1, "calt" 1;
+  letter-spacing: -0.011em;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(94, 106, 210, 0.25);
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border);
+  filter: brightness(1.2);
+}
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.18s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out both;
+}
+
+.animate-spin-icon {
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
