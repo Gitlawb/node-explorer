@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://node.gitlawb.com/api/:path*" },
+    { "source": "/node-info", "destination": "https://node.gitlawb.com/" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
