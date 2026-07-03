@@ -10,6 +10,8 @@ export interface RepoCommit {
   message: string;
   time: string;
   author?: string;
+  /** ISO timestamp kept for activity bucketing */
+  dateRaw?: string;
 }
 
 export interface Repository {

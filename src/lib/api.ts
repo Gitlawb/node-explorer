@@ -363,6 +363,7 @@ export function mapApiRepo(
     message: c.message,
     time: timeAgo(c.date),
     author: c.author,
+    dateRaw: c.date,
   }));
 
   return {
