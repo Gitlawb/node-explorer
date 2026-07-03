@@ -24,11 +24,10 @@ export function RepoList({
       loading && repos !== null && 'opacity-40 pointer-events-none',
     )}>
       {/* Header strip */}
-      <div className="hidden md:grid grid-cols-[24px_minmax(0,5fr)_minmax(0,4fr)_90px_90px] gap-x-4 px-6 h-10 items-center border-b border-border bg-surface">
+      <div className="hidden md:grid grid-cols-[24px_minmax(0,1fr)_120px_100px] gap-x-4 px-6 h-10 items-center border-b border-border bg-surface">
         <span />
         <MicroLabel>repository</MicroLabel>
-        <MicroLabel>description</MicroLabel>
-        <MicroLabel>branch</MicroLabel>
+        <MicroLabel className="text-right">activity</MicroLabel>
         <MicroLabel className="text-right">updated</MicroLabel>
       </div>
 
