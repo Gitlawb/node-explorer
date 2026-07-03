@@ -99,7 +99,7 @@ function MarkdownPreview({ owner, name, path, content }: {
   }
   return (
     <div className="flex gap-8 p-4 sm:p-6">
-      <MarkdownView html={html} className="min-w-0 flex-1 max-w-[72ch]" />
+      <MarkdownView html={html} className="min-w-0 flex-1" />
       {headings.length >= 3 && <TocRail headings={headings} />}
     </div>
   );
@@ -137,7 +137,7 @@ export function FileViewer({
   });
 
   return (
-    <div className="overflow-hidden border border-border max-w-[1100px]">
+    <div className="overflow-hidden border border-border">
       {/* Header */}
       <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 min-h-10 py-1.5 border-b border-border bg-surface flex-wrap">
         <button

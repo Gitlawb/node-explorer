@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   shortDid,
   didKeySegment,
+  truncateDid,
   trustTier,
   shortSha,
   timeAgo,
@@ -34,6 +35,26 @@ describe('didKeySegment', () => {
   it('returns the full segment after the last colon', () => {
     expect(didKeySegment('did:key:z6Mkv79SabcdefXYZ')).toBe('z6Mkv79SabcdefXYZ');
     expect(didKeySegment('nocolon')).toBe('nocolon');
+  });
+});
+
+describe('truncateDid', () => {
+  it('keeps the scheme prefix and middle-truncates the key', () => {
+    expect(truncateDid('did:key:z6Mknr6CvFV5SzJvRWBnE9Fwefi8o24FsiyUUEHEwioxXxYk'))
+      .toBe('did:key:z6Mkn…xXxYk');
+  });
+
+  it('leaves short keys untouched', () => {
+    expect(truncateDid('did:key:z6Mknr6CvFV')).toBe('did:key:z6Mknr6CvFV');
+  });
+
+  it('truncates values without a scheme prefix', () => {
+    expect(truncateDid('z6Mknr6CvFV5SzJvRWBnE9Fwefi8o24Fsiy')).toBe('z6Mkn…4Fsiy');
+  });
+
+  it('respects custom head/tail lengths', () => {
+    expect(truncateDid('did:key:z6Mknr6CvFV5SzJvRWBnE9Fwefi8o24Fsiy', 8, 4))
+      .toBe('did:key:z6Mknr6C…Fsiy');
   });
 });
 

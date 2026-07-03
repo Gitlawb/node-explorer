@@ -1,5 +1,5 @@
 import type { Repository } from '../../types/repo';
-import { shortDid } from '../../lib/api';
+import { shortDid, truncateDid } from '../../lib/api';
 import { CopyButton } from '../ui/CopyButton';
 import { Pill } from '../ui/Pill';
 import { MicroLabel } from '../ui/MicroLabel';
@@ -11,6 +11,8 @@ interface DetailHeaderProps {
 export function DetailHeader({ repo }: DetailHeaderProps) {
   // repo.owner is already the full DID (did:key:z6Mk…)
   const fullDid = repo.owner;
+  const truncatedDid = truncateDid(fullDid);
+  const didSplitAt = truncatedDid.lastIndexOf(':') + 1;
 
   return (
     <div className="min-w-0">
@@ -37,11 +39,12 @@ export function DetailHeader({ repo }: DetailHeaderProps) {
 
       {/* Owner/dates panel */}
       <div className="border border-border">
-        {/* Owner row */}
+        {/* Owner row — middle-truncated for display, copy yields the full DID */}
         <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-border-inner">
           <MicroLabel className="w-[64px] flex-shrink-0">owner</MicroLabel>
-          <span className="text-[11px] sm:text-[12.5px] flex-1 truncate min-w-0 text-foreground">
-            {fullDid}
+          <span title={fullDid} className="text-[11px] sm:text-[12.5px] flex-1 truncate min-w-0 text-foreground">
+            <span className="text-dim">{truncatedDid.slice(0, didSplitAt)}</span>
+            {truncatedDid.slice(didSplitAt)}
           </span>
           <CopyButton value={fullDid} label="copy" />
         </div>

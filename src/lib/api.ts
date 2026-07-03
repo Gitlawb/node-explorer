@@ -300,6 +300,19 @@ export function didKeySegment(did: string): string {
   return did.split(':').pop() ?? did;
 }
 
+/**
+ * Middle-truncated DID for display: keeps the scheme prefix intact and
+ * shortens only the key segment (`did:key:z6Mkn…xXxYk`). Copy actions must
+ * still use the full DID.
+ */
+export function truncateDid(did: string, head = 5, tail = 5): string {
+  const splitAt = did.lastIndexOf(':') + 1;
+  const prefix = did.slice(0, splitAt);
+  const key = did.slice(splitAt);
+  if (key.length <= head + tail + 1) return did;
+  return `${prefix}${key.slice(0, head)}…${key.slice(-tail)}`;
+}
+
 /** Trust tiers mirror the node's agents.rs thresholds. */
 export function trustTier(score: number): string {
   if (score < 0.1) return 'newcomer';
