@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { Pill } from '../ui/Pill';
+import { Logo } from '../ui/Logo';
 import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 export default function TopBar() {
@@ -13,11 +14,12 @@ export default function TopBar() {
         {/* Left: branding */}
         <Link
           to="/repos"
-          className="flex items-center gap-3 shrink-0 min-w-0
+          className="flex items-center gap-2.5 shrink-0 min-w-0
             focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
         >
+          <Logo className="h-5 w-auto shrink-0 text-foreground" />
           <span className="text-[13px] font-bold text-foreground whitespace-nowrap">
-            gitlawb node explorer
+            explorer
           </span>
         </Link>
         {node?.network && <Pill className="max-sm:hidden">{node.network}</Pill>}

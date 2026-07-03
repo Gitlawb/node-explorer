@@ -71,7 +71,7 @@ export function ReadmePanel({ owner, name, dirPath, entries }: ReadmePanelProps)
         </div>
       ) : (
         <div className="flex gap-8 p-4 sm:p-6">
-          <MarkdownView html={state.html ?? ''} className="min-w-0 flex-1 max-w-[72ch]" />
+          <MarkdownView html={state.html ?? ''} className="min-w-0 flex-1" />
           {headings.length >= 3 && <TocRail headings={headings} />}
         </div>
       )}

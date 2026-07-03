@@ -177,7 +177,7 @@ export default function RepositoryDetailPage() {
       )}
 
       {/* Two-column top section */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 lg:gap-10 mb-8 sm:mb-10 min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-6 lg:gap-10 mb-8 sm:mb-10 min-w-0">
         <DetailHeader repo={repo} />
         <div className="space-y-4 sm:space-y-5 min-w-0">
           <StatsPanel stars={repo.stars} latestCommit={repo.latestCommit} created={repo.createdAt} />
