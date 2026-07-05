@@ -13,9 +13,86 @@ import {
   getBlob,
   blobUrl,
   MAX_INLINE_BYTES,
+  peerHost,
+  shortRefName,
+  parseEventRepo,
+  taskTitle,
+  prettyJson,
   type ApiRepo,
   type ApiTreeEntry,
 } from './api';
+
+describe('peerHost', () => {
+  it('reduces a URL to its host', () => {
+    expect(peerHost('https://node2.gitlawb.com')).toBe('node2.gitlawb.com');
+  });
+
+  it('keeps non-default ports', () => {
+    expect(peerHost('http://10.0.0.5:7545/path')).toBe('10.0.0.5:7545');
+  });
+
+  it('degrades gracefully on unparseable input', () => {
+    expect(peerHost('not a url')).toBe('not a url');
+  });
+});
+
+describe('shortRefName', () => {
+  it('strips refs/heads/ to the branch name', () => {
+    expect(shortRefName('refs/heads/main')).toBe('main');
+  });
+
+  it('keeps non-branch refs recognizable', () => {
+    expect(shortRefName('refs/pull/997/merge')).toBe('pull/997/merge');
+  });
+
+  it('passes through bare names', () => {
+    expect(shortRefName('main')).toBe('main');
+  });
+});
+
+describe('parseEventRepo', () => {
+  it('splits owner key and repo name into a linkable ref', () => {
+    const ref = parseEventRepo('z6MkvLongOwnerKey123/hello-world');
+    expect(ref).toEqual({
+      ownerDid: 'did:key:z6MkvLongOwnerKey123',
+      name: 'hello-world',
+      label: 'z6MkvLon/hello-world',
+    });
+  });
+
+  it('keeps an existing did: prefix', () => {
+    expect(parseEventRepo('did:key:z6Mk/name')?.ownerDid).toBe('did:key:z6Mk');
+  });
+
+  it('returns null for values without an owner/name shape', () => {
+    expect(parseEventRepo('justaname')).toBeNull();
+    expect(parseEventRepo('/leading')).toBeNull();
+    expect(parseEventRepo('trailing/')).toBeNull();
+  });
+});
+
+describe('taskTitle', () => {
+  it('prefers the payload JSON title', () => {
+    expect(taskTitle({ kind: 'deploy', payload: '{"title":"Deploy: scan PRs"}' })).toBe('Deploy: scan PRs');
+  });
+
+  it('falls back to kind when payload is missing, malformed, or untitled', () => {
+    expect(taskTitle({ kind: 'deploy', payload: null })).toBe('deploy');
+    expect(taskTitle({ kind: 'deploy', payload: 'not json' })).toBe('deploy');
+    expect(taskTitle({ kind: 'deploy', payload: '{"x":1}' })).toBe('deploy');
+    expect(taskTitle({ kind: 'deploy', payload: '{"title":"  "}' })).toBe('deploy');
+  });
+});
+
+describe('prettyJson', () => {
+  it('pretty-prints valid JSON', () => {
+    expect(prettyJson('{"a":1}')).toBe('{\n  "a": 1\n}');
+  });
+
+  it('returns non-JSON input unchanged', () => {
+    expect(prettyJson('plain text')).toBe('plain text');
+  });
+});
 
 describe('shortDid', () => {
   it('returns the last DID segment truncated to 8 chars', () => {

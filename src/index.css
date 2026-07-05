@@ -150,6 +150,14 @@ body {
 
 /* ── Terminal utilities ────────────────────────────────────────────────────── */
 
+/* Hide scrollbars on horizontally scrollable chrome (section tab bar) */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Uppercase letter-spaced micro-label, as in the reference mockups */
 .micro-label {
   font-size: 10px;

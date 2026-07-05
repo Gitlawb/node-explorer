@@ -29,6 +29,27 @@ export default defineConfig({
         secure: true,
         rewrite: () => '/',
       },
+      // Peer nodes for the network page (no CORS on nodes — same list as
+      // vercel.json and src/lib/nodes.ts). `/nodes/<id>/node-info` maps to the
+      // peer's root; everything else keeps its path with the prefix stripped.
+      ...Object.fromEntries(
+        [
+          ['node2', 'https://node2.gitlawb.com'],
+          ['node3', 'https://node3.gitlawb.com'],
+          ['manila', 'https://manila.gitlawb.com'],
+        ].map(([id, target]) => [
+          `/nodes/${id}`,
+          {
+            target,
+            changeOrigin: true,
+            secure: true,
+            rewrite: (path: string) => {
+              const rest = path.slice(`/nodes/${id}`.length)
+              return rest === '/node-info' ? '/' : rest
+            },
+          },
+        ]),
+      ),
     },
   },
 })

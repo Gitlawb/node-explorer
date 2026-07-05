@@ -103,12 +103,65 @@ export interface NodeStats {
   version: string;
 }
 
+export interface ApiPeer {
+  did: string;
+  http_url: string;
+  last_seen: string | null;
+  reachable: boolean;
+}
+
+export interface P2PInfo {
+  enabled: boolean;
+  peer_id?: string;
+  topics?: string[];
+  connected_peers?: number | null;
+  gossipsub_mesh_peers?: number | null;
+  gossipsub_all_peers?: number | null;
+  listen_addrs?: string[] | null;
+}
+
+/** Node-level ref-update event from GET /events/ref-updates. */
+export interface ApiRefUpdate {
+  id: string;
+  node_did: string;
+  pusher_did: string;
+  /** "{full_owner_key}/{repo_name}" — see parseEventRepo. */
+  repo: string;
+  ref_name: string;
+  old_sha: string;
+  new_sha: string;
+  timestamp: string;
+  cert_id: string | null;
+  received_at: string;
+  /** null/empty for pushes received by this node; set when gossiped from a peer. */
+  from_peer: string | null;
+}
+
+export type TaskStatus = 'pending' | 'claimed' | 'completed' | 'failed';
+
+export interface ApiTask {
+  id: string;
+  repo_id: string | null;
+  kind: string;
+  status: TaskStatus | string;
+  delegator_did: string;
+  assignee_did: string | null;
+  capability: string;
+  ucan_token: string | null;
+  payload: string | null;
+  result: string | null;
+  created_at: string;
+  updated_at: string;
+  deadline: string | null;
+}
+
 export interface NodeInfo {
   name: string;
   did: string;
   version: string;
   network: string;
   protocols: string[];
+  p2p_peer_id?: string | null;
 }
 
 export interface RepoListParams {
@@ -289,6 +342,54 @@ export async function fetchCerts(owner: string, name: string, signal?: AbortSign
   return data.certificates ?? [];
 }
 
+export async function fetchPeers(signal?: AbortSignal): Promise<ApiPeer[]> {
+  const data = await getJson<{ peers?: ApiPeer[] }>(`${BASE_URL}/peers`, signal);
+  return data.peers ?? [];
+}
+
+export function fetchP2PInfo(signal?: AbortSignal): Promise<P2PInfo> {
+  return getJson<P2PInfo>(`${BASE_URL}/p2p/info`, signal);
+}
+
+export async function pingPeer(did: string, signal?: AbortSignal): Promise<boolean> {
+  const data = await getJson<{ reachable?: boolean }>(
+    `${BASE_URL}/peers/${encodeURIComponent(did)}/ping`,
+    signal,
+  );
+  return data.reachable === true;
+}
+
+// Server clamps ref-update limit to 200 (node: api/events.rs).
+export const MAX_EVENT_LIMIT = 200;
+
+export async function fetchRefUpdates(limit = MAX_EVENT_LIMIT, signal?: AbortSignal): Promise<ApiRefUpdate[]> {
+  const data = await getJson<{ events?: ApiRefUpdate[] }>(
+    `${BASE_URL}/events/ref-updates?limit=${limit}`,
+    signal,
+  );
+  return data.events ?? [];
+}
+
+export interface TaskListParams {
+  status?: TaskStatus;
+  limit?: number;
+  signal?: AbortSignal;
+}
+
+export async function fetchTasks({ status, limit = 200, signal }: TaskListParams = {}): Promise<ApiTask[]> {
+  const search = new URLSearchParams({ limit: String(limit) });
+  if (status) search.set('status', status);
+  const data = await getJson<{ tasks?: ApiTask[] }>(`${BASE_URL}/tasks?${search}`, signal);
+  return data.tasks ?? [];
+}
+
+export async function fetchTask(id: string, signal?: AbortSignal): Promise<ApiTask> {
+  const res = await fetch(`${BASE_URL}/tasks/${encodeURIComponent(id)}`, { signal });
+  if (res.status === 404) throw new Error('not_found');
+  if (!res.ok) throw new Error(`Failed to fetch task: ${res.status}`);
+  return res.json() as Promise<ApiTask>;
+}
+
 /** Short display form of a DID: last segment after ':', truncated (mockups show `z6Mkv79S/`). */
 export function shortDid(did: string): string {
   const seg = did.split(':').pop() ?? did;
@@ -323,6 +424,77 @@ export function trustTier(score: number): string {
 
 export function shortSha(sha: string): string {
   return sha ? sha.slice(0, 7) : '—';
+}
+
+/** Host (and non-default port) of a peer URL, for compact display. */
+export function peerHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  }
+}
+
+/** `refs/heads/main` → `main`; other refs lose only the `refs/` prefix. */
+export function shortRefName(ref: string): string {
+  if (ref.startsWith('refs/heads/')) return ref.slice('refs/heads/'.length);
+  if (ref.startsWith('refs/')) return ref.slice('refs/'.length);
+  return ref;
+}
+
+/** An event is "gossip" when it arrived from a peer rather than a local push. */
+export function isGossip(event: Pick<ApiRefUpdate, 'from_peer'>): boolean {
+  return Boolean(event.from_peer);
+}
+
+export interface EventRepoRef {
+  /** Full DID usable in /repos/:owner/:name links (`did:key:` + key part). */
+  ownerDid: string;
+  name: string;
+  /** Short owner segment for display (`z6Mkv79S/name`). */
+  label: string;
+}
+
+/**
+ * Ref-update events store repo as "{full_owner_key}/{repo_name}" (node:
+ * api/events.rs). Returns null when the field doesn't match that shape.
+ */
+export function parseEventRepo(repo: string): EventRepoRef | null {
+  const slash = repo.indexOf('/');
+  if (slash <= 0 || slash === repo.length - 1) return null;
+  const key = repo.slice(0, slash);
+  const name = repo.slice(slash + 1);
+  return {
+    ownerDid: key.startsWith('did:') ? key : `did:key:${key}`,
+    name,
+    label: `${key.length > 8 ? key.slice(0, 8) : key}/${name}`,
+  };
+}
+
+/**
+ * Human title for a task: agents put a `title` in the JSON payload; fall back
+ * to the task kind when absent or unparseable.
+ */
+export function taskTitle(task: Pick<ApiTask, 'kind' | 'payload'>): string {
+  if (task.payload) {
+    try {
+      const parsed: unknown = JSON.parse(task.payload);
+      if (parsed && typeof parsed === 'object' && 'title' in parsed) {
+        const title = (parsed as { title: unknown }).title;
+        if (typeof title === 'string' && title.trim()) return title;
+      }
+    } catch { /* fall through to kind */ }
+  }
+  return task.kind;
+}
+
+/** Pretty-print a JSON string for display; returns the input when not JSON. */
+export function prettyJson(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
 }
 
 export function timeAgo(isoString: string): string {
