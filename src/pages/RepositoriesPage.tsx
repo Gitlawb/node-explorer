@@ -10,7 +10,6 @@ import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
 import { RepoToolbar } from '../components/repos/RepoToolbar';
 import type { ForkFilter } from '../components/repos/RepoToolbar';
-import { ExploreTabs } from '../components/layout/ExploreTabs';
 import { Pill } from '../components/ui/Pill';
 
 const SORTS: RepoSort[] = ['updated', 'created', 'oldest', 'name', 'stars'];
@@ -60,7 +59,6 @@ export default function RepositoriesPage() {
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
 
-      <ExploreTabs />
 
       <RepoHero
         totalCount={totalCount}

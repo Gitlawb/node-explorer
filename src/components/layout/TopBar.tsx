@@ -13,7 +13,7 @@ export default function TopBar() {
 
         {/* Left: branding */}
         <Link
-          to="/repos"
+          to="/"
           className="flex items-center gap-2.5 shrink-0 min-w-0
             focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
         >

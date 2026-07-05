@@ -16,6 +16,8 @@ interface RepoHeroProps {
   description?: React.ReactNode;
   countNoun?: string;
   statLabel?: string;
+  /** Replaces the default count/page/per-page/window cells (first 4 render in the 2×2 box). */
+  cells?: { label: string; value: string }[];
 }
 
 function StatCell({ label, value, className }: { label: string; value: string; className?: string }) {
@@ -52,7 +54,17 @@ export function RepoHero({
   description,
   countNoun = 'repos',
   statLabel = 'visible repos',
+  cells,
 }: RepoHeroProps) {
+  const statCells = cells ?? [
+    { label: statLabel, value: totalCount > 0 ? totalCount.toLocaleString() : '—' },
+    { label: 'page', value: String(page) },
+    { label: 'per page', value: String(perPage) },
+    {
+      label: 'window',
+      value: totalCount > 0 ? `${windowStart.toLocaleString()}–${windowEnd.toLocaleString()}` : '—',
+    },
+  ];
   return (
     <section className="mt-6 sm:mt-8 border border-border grid-lines">
 
@@ -89,14 +101,14 @@ export function RepoHero({
 
         {/* 2×2 stats box */}
         <div className="grid grid-cols-2 border border-border shrink-0 w-full sm:w-[420px]">
-          <StatCell label={statLabel} value={totalCount > 0 ? totalCount.toLocaleString() : '—'} />
-          <StatCell label="page" value={String(page)} className="border-l border-border" />
-          <StatCell label="per page" value={String(perPage)} className="border-t border-border" />
-          <StatCell
-            label="window"
-            value={totalCount > 0 ? `${windowStart.toLocaleString()}–${windowEnd.toLocaleString()}` : '—'}
-            className="border-l border-t border-border"
-          />
+          {statCells.slice(0, 4).map((cell, i) => (
+            <StatCell
+              key={cell.label}
+              label={cell.label}
+              value={cell.value}
+              className={cn(i % 2 === 1 && 'border-l border-border', i >= 2 && 'border-t border-border')}
+            />
+          ))}
         </div>
       </div>
 

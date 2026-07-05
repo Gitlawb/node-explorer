@@ -2,6 +2,12 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://node.gitlawb.com/api/:path*" },
     { "source": "/node-info", "destination": "https://node.gitlawb.com/" },
+    { "source": "/nodes/node2/node-info", "destination": "https://node2.gitlawb.com/" },
+    { "source": "/nodes/node2/api/:path*", "destination": "https://node2.gitlawb.com/api/:path*" },
+    { "source": "/nodes/node3/node-info", "destination": "https://node3.gitlawb.com/" },
+    { "source": "/nodes/node3/api/:path*", "destination": "https://node3.gitlawb.com/api/:path*" },
+    { "source": "/nodes/manila/node-info", "destination": "https://manila.gitlawb.com/" },
+    { "source": "/nodes/manila/api/:path*", "destination": "https://manila.gitlawb.com/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
