@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useRepository } from '../hooks/useRepository';
+import { useRepositorySocialMetadata } from '../hooks/useRepositorySocialMetadata';
 import { useShortcut, useShortcuts } from '../hooks/useShortcuts';
 import { shortDid } from '../lib/api';
 import { FileFinder } from '../components/repo-detail/FileFinder';
@@ -106,6 +107,7 @@ const TAB_IDS = ['code', 'commits', 'pulls', 'issues', 'certs', 'events'];
 export default function RepositoryDetailPage() {
   const { owner = '', name = '' } = useParams<{ owner: string; name: string }>();
   const { repo, notFound, loading, error, partialError } = useRepository(owner, name);
+  useRepositorySocialMetadata(repo);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab') ?? 'code';

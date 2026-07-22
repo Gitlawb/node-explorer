@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', '.vercel', '.playwright-cli']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -22,6 +22,19 @@ export default defineConfig([
   {
     // shadcn/ui primitives export variant helpers alongside components by design
     files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    // Vercel Functions run on Node and intentionally export HTTP handlers.
+    files: ['api/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
     rules: {
       'react-refresh/only-export-components': 'off',
     },

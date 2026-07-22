@@ -1,7 +1,10 @@
 {
+  "extends": "./tsconfig.api.json",
   "files": [],
+  "include": [],
   "references": [
     { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.api.json" },
     { "path": "./tsconfig.node.json" }
   ]
 }
