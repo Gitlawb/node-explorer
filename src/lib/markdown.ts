@@ -116,3 +116,33 @@ export async function renderMarkdown(md: string, ctx: MarkdownCtx): Promise<stri
   // (it runs before the rewrite hook, so raw hrefs are what get vetted).
   return purifier.sanitize(raw, { ALLOWED_TAGS, ALLOWED_ATTR });
 }
+
+/**
+ * Render site documentation (public/docs/*.md) through the same engine and
+ * sanitizer as repo markdown, minus the repo-specific link/image rewriting:
+ * docs link internally with root-absolute paths (/docs/…) that need no
+ * translation, and externally with https URLs that open in a new tab.
+ */
+export async function renderDocsMarkdown(md: string): Promise<string> {
+  const raw = await engine.parse(md, { async: true });
+  const purifier = createDOMPurify(window);
+
+  purifier.addHook('afterSanitizeAttributes', node => {
+    if (node.hasAttribute('class')) {
+      const kept = (node.getAttribute('class') ?? '')
+        .split(/\s+/)
+        .filter(c => CLASS_KEEP.test(c) || CLASS_KEEP_EXACT.has(c));
+      if (kept.length) node.setAttribute('class', kept.join(' '));
+      else node.removeAttribute('class');
+    }
+
+    if (node.tagName === 'A' && /^https?:\/\//.test(node.getAttribute('href') ?? '')) {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener');
+    }
+
+    if (node.tagName === 'IMG') node.setAttribute('loading', 'lazy');
+  });
+
+  return purifier.sanitize(raw, { ALLOWED_TAGS, ALLOWED_ATTR });
+}

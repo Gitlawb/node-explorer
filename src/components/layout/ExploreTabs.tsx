@@ -18,6 +18,7 @@ const SECTIONS = [
   { to: '/events', label: 'events' },
   { to: '/tasks', label: 'tasks' },
   { to: '/network', label: 'network' },
+  { to: '/docs', label: 'docs' },
 ] as const;
 
 export function ExploreTabs() {
