@@ -140,6 +140,7 @@ Public nodes enforce **iCaptcha** (proof-of-intelligence) on `gl register` and r
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| `gl` prints "fatal: not a git repository" | a shell alias shadows the binary (oh-my-zsh's git plugin ships `gl`=`git pull`) | `echo 'unalias gl' >> ~/.zshrc && source ~/.zshrc` |
 | `git push` says helper not found | `git-remote-gitlawb` not on PATH | reinstall; `gl doctor` confirms |
 | `401` / "not an agent" on write | not registered with this node | `gl register` |
 | `403 icaptcha_proof_required` | `gl` too old to solve challenges | upgrade `gl`, retry |

@@ -370,6 +370,7 @@ auto-injects `GITLAWB_NODE`.
 
 ## Common Edge Cases
 
+- **`gl` runs `git pull` / prints "fatal: not a git repository"**: a shell alias shadows the binary — oh-my-zsh's git plugin ships `gl`=`git pull`; fix with `echo 'unalias gl' >> ~/.zshrc && source ~/.zshrc`
 - **Identity already exists**: `gl identity new` errors — use `gl identity show` first
 - **Already registered**: `gl register` is idempotent, safe to re-run
 - **Push after `gl init` fails with "src refspec main does not match any"**: nothing is committed yet — `git add -A && git commit`, and `git branch -M main` if the default branch is `master`

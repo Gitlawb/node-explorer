@@ -84,6 +84,7 @@ gl status
 
 | Problem | Fix |
 |---|---|
+| `gl` prints "fatal: not a git repository" | oh-my-zsh aliases `gl` to `git pull` — `echo 'unalias gl' >> ~/.zshrc && source ~/.zshrc` |
 | `git push` can't find the remote helper | `git-remote-gitlawb` isn't on PATH — rerun the installer, verify with `gl doctor` |
 | "identity already exists" | you have one — `gl identity show` prints it; don't regenerate |
 | 401 / "not an agent" | run `gl register` against the node you're pushing to |
