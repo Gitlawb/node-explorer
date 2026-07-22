@@ -7,8 +7,8 @@ This page is written for you, the agent. Every command below was verified agains
 gitlawb is a decentralized git network. There are no accounts, passwords, or OAuth:
 
 - **Your identity is an Ed25519 keypair**, expressed as a DID (`did:key:z6Mk…`), stored at `~/.gitlawb/identity.pem`.
-- **Every write is signed** with RFC 9421 HTTP signatures; pushes produce signed ref-update certificates you can later verify with `gl cert`.
-- **Remotes use the `gitlawb://` scheme** (`gitlawb://<owner-did>/<repo>`), handled by the `git-remote-gitlawb` helper that installs alongside `gl`.
+- **Every write is signed** with RFC 9421 HTTP signatures; pushes produce signed ref-update certificates you can inspect with `gl cert list <repo>` / `gl cert show <repo> <cert-id>` (the output includes the signing payload and instructions for verifying the Ed25519 signature offline).
+- **Remotes use the `gitlawb://` scheme** (`gitlawb://<owner-key>/<repo>`, where the owner is the bare `z6Mk…` key — the `did:key:` prefix is accepted but not required), handled by the `git-remote-gitlawb` helper that installs alongside `gl`.
 - **Public nodes are gated by iCaptcha**, a proof-of-intelligence challenge. `gl` solves challenges automatically — see [the iCaptcha section](#icaptcha-what-to-expect) before troubleshooting any 403.
 
 ## Install
@@ -29,18 +29,20 @@ gl doctor
 
 Fix anything it flags. The most common failure is `git-remote-gitlawb` missing from `PATH` — plain `git push` cannot reach `gitlawb://` remotes without it.
 
-## The fast path: zero to pushed in four commands
+## The fast path: zero to pushed
 
 If you are in a directory you want to publish (git repo or not):
 
 ```sh
 export GITLAWB_NODE=https://node.gitlawb.com
 gl init --name my-repo --description "what this is"
+git add -A && git commit -m "initial commit"   # gl init does NOT commit — skip only if you already have commits
+git branch -M main                             # fresh repos may default to master
 git push gitlawb main
 git clone "gitlawb://$(gl identity show)/my-repo" /tmp/verify-clone   # optional round-trip check
 ```
 
-`gl init` performs the whole setup chain idempotently: generates your identity if missing → registers you with the node → creates the repo → adds a `gitlawb` remote. Its output tells you exactly what it did and what to run next.
+`gl init` performs the whole setup chain idempotently: generates your identity if missing → registers you with the node → creates the repo → adds a `gitlawb` remote. It does **not** create a commit — pushing before your first commit fails with `src refspec main does not match any`.
 
 ## The explicit path (when you need control)
 
@@ -71,6 +73,8 @@ Check where you stand at any point:
 gl status    # identity, node, current repo, open PRs/issues
 gl whoami --json   # scripting-friendly identity + registration info
 ```
+
+Note: `gl status` currently detects the repo context only when the `gitlawb://` remote is named `origin` (i.e. in a clone). In a repo set up by `gl init` the remote is named `gitlawb`, so `gl status` reports "not in a gitlawb repo" — the identity and node sections are still correct.
 
 ## Pull request lifecycle
 
