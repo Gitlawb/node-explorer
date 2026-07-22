@@ -51,6 +51,18 @@ export default function DocsPage() {
     };
   }, [slug]);
 
+  // Crawlers get per-section titles from api/docs-page.ts; this keeps the
+  // document title in sync during client-side navigation.
+  useEffect(() => {
+    const doc = DOCS.find(d => d.slug === slug);
+    if (!doc) return;
+    const previous = document.title;
+    document.title = `${doc.label} · docs · gitlawb explorer`;
+    return () => {
+      document.title = previous;
+    };
+  }, [slug]);
+
   const state: Omit<DocState, 'slug'> =
     loaded.slug === slug ? loaded : { html: null, error: null };
 

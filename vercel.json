@@ -2,6 +2,8 @@
   "rewrites": [
     { "source": "/repos/:owner/:name", "destination": "/api/repo-page?owner=:owner&name=:name" },
     { "source": "/og/repos/:owner/:name/:version", "destination": "/api/og?owner=:owner&name=:name&v=:version" },
+    { "source": "/docs", "destination": "/api/docs-page" },
+    { "source": "/docs/:slug", "destination": "/api/docs-page?slug=:slug" },
     { "source": "/api/v1/:path*", "destination": "https://node.gitlawb.com/api/v1/:path*" },
     { "source": "/node-info", "destination": "https://node.gitlawb.com/" },
     { "source": "/nodes/node2/node-info", "destination": "https://node2.gitlawb.com/" },
