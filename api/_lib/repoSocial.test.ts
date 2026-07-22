@@ -8,7 +8,7 @@ import {
   normalizeRepoOwner,
   repoCacheVersion,
   type RepoSocialInput,
-} from './repoSocial';
+} from './repoSocial.js';
 
 const REPO: RepoSocialInput = {
   name: 'digital-garden',

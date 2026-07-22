@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchRepository, type ApiRepository } from './repository';
+import { fetchRepository, type ApiRepository } from './repository.js';
 
 const REPOSITORY: ApiRepository = {
   id: 'repo-1',

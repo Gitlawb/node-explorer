@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchRepository, type ApiRepository } from '../_lib/repository';
-import { GET } from '../repo-page';
+import { fetchRepository, type ApiRepository } from '../_lib/repository.js';
+import { GET } from '../repo-page.js';
 
-vi.mock('../_lib/repository', () => ({
+vi.mock('../_lib/repository.js', () => ({
   fetchRepository: vi.fn(),
 }));
 

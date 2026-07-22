@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { repoCacheVersion } from '../_lib/repoSocial';
-import type { ApiRepository } from '../_lib/repository';
-import { GET } from '../og';
+import { repoCacheVersion } from '../_lib/repoSocial.js';
+import type { ApiRepository } from '../_lib/repository.js';
+import { GET } from '../og.js';
 
 const repository = {
   id: 'repo-1',
