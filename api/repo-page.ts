@@ -1,4 +1,4 @@
-import { buildRepoSocialModel, escapeHtml } from '../src/lib/repoSocial';
+import { buildRepoSocialModel, escapeHtml } from './_lib/repoSocial';
 import { fetchRepository } from './_lib/repository';
 
 const GENERIC_TITLE = 'gitlawb explorer';

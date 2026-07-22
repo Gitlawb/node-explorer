@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { repoCacheVersion } from '../../src/lib/repoSocial';
+import { repoCacheVersion } from '../_lib/repoSocial';
 import type { ApiRepository } from '../_lib/repository';
 import { GET } from '../og';
 

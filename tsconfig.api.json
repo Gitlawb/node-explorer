@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["api", "src/lib/repoSocial.ts"]
+  "include": ["api"]
 }

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { buildRepoSocialModel, type RepoSocialInput } from '../lib/repoSocial';
+import { buildRepoSocialModel, type RepoSocialInput } from '../../api/_lib/repoSocial';
 import type { Repository } from '../types/repo';
 
 const SITE_NAME = 'gitlawb explorer';

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 
-import type { RepoSocialModel } from '../../src/lib/repoSocial';
+import type { RepoSocialModel } from './repoSocial';
 
 export const OG_WIDTH = 1200;
 export const OG_HEIGHT = 630;

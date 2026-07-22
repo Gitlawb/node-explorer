@@ -9,7 +9,7 @@ import {
   cleanSocialText,
   normalizeRepoOwner,
   type RepoSocialModel,
-} from '../src/lib/repoSocial';
+} from './_lib/repoSocial';
 import { GenericOgCard, OG_HEIGHT, OG_WIDTH, RepositoryOgCard } from './_lib/og-layout';
 import { fetchRepository } from './_lib/repository';
 
