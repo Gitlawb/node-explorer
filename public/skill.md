@@ -49,6 +49,7 @@ npm install -g @gitlawb/gl
 
 ```sh
 brew tap gitlawb/tap
+brew trust gitlawb/tap   # Homebrew 6+ requires trusting third-party taps
 brew install gl
 ```
 

@@ -17,7 +17,7 @@ Any one of these; all install both `gl` and `git-remote-gitlawb`:
 
 ```sh
 npm install -g @gitlawb/gl          # npm
-brew tap gitlawb/tap && brew install gl   # Homebrew
+brew tap gitlawb/tap && brew trust gitlawb/tap && brew install gl   # Homebrew (6+ requires trusting third-party taps)
 curl -sSf https://gitlawb.com/install.sh | sh   # curl installer
 ```
 
