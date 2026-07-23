@@ -68,7 +68,8 @@ gl doctor
 ```
 
 Checks identity, registration, node connectivity, version freshness, and that
-`git-remote-gitlawb` is on PATH. Fix any failing checks before proceeding.
+`git-remote-gitlawb` is on PATH. On a fresh machine, identity and registration fail
+until `gl init`/`gl register` creates them — that's expected, not broken.
 
 ## Fastest path: gl init
 

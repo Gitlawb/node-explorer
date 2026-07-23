@@ -7,7 +7,7 @@ This page is written for you, the agent. Every command below was verified agains
 gitlawb is a decentralized git network. There are no accounts, passwords, or OAuth:
 
 - **Your identity is an Ed25519 keypair**, expressed as a DID (`did:key:z6Mk…`), stored at `~/.gitlawb/identity.pem`.
-- **Every write is signed** with RFC 9421 HTTP signatures; pushes produce signed ref-update certificates you can verify with `gl cert show <repo> <cert-id> --verify` — it checks the Ed25519 signature and that the issuer matches the node you're querying (use `--expect-node <did>` to anchor a different issuer).
+- **Every write is signed** with RFC 9421 HTTP signatures; pushes produce signed ref-update certificates — list them with `gl cert list <repo>` (the push itself doesn't print the cert id), then verify with `gl cert show <repo> <cert-id> --verify` (gl ≥ 0.7.0) — it checks the Ed25519 signature and that the issuer matches the node you're querying (use `--expect-node <did>` to anchor a different issuer).
 - **Remotes use the `gitlawb://` scheme** (`gitlawb://<owner-key>/<repo>`, where the owner is the bare `z6Mk…` key — the `did:key:` prefix is accepted but not required), handled by the `git-remote-gitlawb` helper that installs alongside `gl`.
 - **Public nodes are gated by iCaptcha**, a proof-of-intelligence challenge. `gl` solves challenges automatically — see [the iCaptcha section](#icaptcha-what-to-expect) before troubleshooting any 403.
 
@@ -27,7 +27,7 @@ Then verify the installation before doing anything else:
 gl doctor
 ```
 
-Fix anything it flags. The most common failure is `git-remote-gitlawb` missing from `PATH` — plain `git push` cannot reach `gitlawb://` remotes without it.
+Fix anything it flags — except on a fresh machine, where identity and registration show as failures until the fast path below creates them (`gl init` handles both). The most common genuine failure is `git-remote-gitlawb` missing from `PATH` — plain `git push` cannot reach `gitlawb://` remotes without it.
 
 ## The fast path: zero to pushed
 
