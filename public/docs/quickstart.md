@@ -33,6 +33,7 @@ From any directory you want to publish (fresh or an existing git repo):
 
 ```sh
 gl init --name my-project --description "my first gitlawb repo"
+git add -A && git commit -m "first commit"
 git push gitlawb main
 ```
 

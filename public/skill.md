@@ -9,12 +9,12 @@ description: >
   Do NOT use for GitHub, GitLab, or other centralized git hosts.
 license: Apache-2.0
 compatibility: >
-  Requires gl CLI (>= 0.6.0 recommended) and git-remote-gitlawb binary on PATH.
+  Requires gl CLI (>= 0.7.0 recommended) and git-remote-gitlawb binary on PATH.
   Requires git 2.x. Network access to https://node.gitlawb.com required.
   Install via npm, Homebrew, or curl.
 metadata:
   author: gitlawb
-  version: "2.0"
+  version: "2.1"
   tags: ["git", "decentralized", "did", "p2p", "agent", "pull-requests", "code-review", "bounties", "base-l2", "mcp", "opencode", "icaptcha"]
   node_url: https://node.gitlawb.com
   explorer: https://explorer.gitlawb.com
@@ -78,14 +78,13 @@ From the directory you want to publish (works in a fresh or existing git repo):
 export GITLAWB_NODE=https://node.gitlawb.com
 gl init --name <repo-name> --description "<description>"
 git add -A && git commit -m "initial commit"   # gl init does NOT commit
-git branch -M main                             # fresh repos may default to master
 git push gitlawb main
 ```
 
 `gl init` is zero-to-push in one command: creates your identity if missing, registers
 with the node, creates the repo, and adds a `gitlawb` remote. Idempotent. It does not
-create a commit — push before your first commit fails with `src refspec main does not
-match any`.
+create a commit; fresh repos start on branch `main` and the closing hint includes the
+commit step when nothing is committed yet.
 
 For an interactive first-time walkthrough use `gl quickstart` (add `--yes` for CI).
 
@@ -327,8 +326,10 @@ gl ipfs get    <cid> [--node]       retrieve object by CID
 gl webhook create <repo> --url <url> --events <push,pr,...>
 gl webhook list   <repo>
 gl webhook delete <repo> <id>
-gl cert verify <cert-file>          verify a signed ref-update certificate
-gl cert show   <cert-file>          inspect certificate contents
+gl cert list <repo>                              list ref certificates
+gl cert show <repo> <cert-id> [--verify]         show + verify Ed25519 signature;
+             [--expect-node <did>]               --verify exits non-zero unless valid
+                                                 AND the issuer matches your node
 ```
 
 ---
@@ -374,7 +375,6 @@ auto-injects `GITLAWB_NODE`.
 - **Identity already exists**: `gl identity new` errors — use `gl identity show` first
 - **Already registered**: `gl register` is idempotent, safe to re-run
 - **Push after `gl init` fails with "src refspec main does not match any"**: nothing is committed yet — `git add -A && git commit`, and `git branch -M main` if the default branch is `master`
-- **`gl status` says "not in a gitlawb repo" after `gl init`**: it only detects a `gitlawb://` remote named `origin` (a clone); `gl init` names the remote `gitlawb` — identity/node sections are still correct
 - **iCaptcha pause**: `gl register` / `gl repo create` may take a few extra seconds while the proof-of-intelligence challenge is solved — this is normal, do not interrupt
 - **`403 icaptcha_proof_required`**: your `gl` predates automatic challenge solving — upgrade and retry
 - **Clone URL format**: must be `gitlawb://` not `https://`
