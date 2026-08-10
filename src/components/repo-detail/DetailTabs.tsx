@@ -10,7 +10,7 @@ import { EventList } from './EventList';
 import { CertList } from './CertList';
 import { ReadmePanel } from './ReadmePanel';
 import { Pill } from '../ui/Pill';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tabs, Button } from '@heroui/react';
 import {
   getBlob,
   fetchSubtree,
@@ -58,7 +58,7 @@ const LAZY_FETCHERS: Record<LazyTabId, (o: string, n: string, s?: AbortSignal) =
 function EmptyTab({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center border border-border">
-      <p className="m-0 text-[13px] text-muted-foreground">no {label} yet</p>
+      <p className="m-0 text-[13px] text-muted">no {label} yet</p>
     </div>
   );
 }
@@ -66,7 +66,7 @@ function EmptyTab({ label }: { label: string }) {
 function TabLoading() {
   return (
     <div className="flex items-center justify-center py-16 border border-border" aria-busy="true">
-      <p className="m-0 text-[13px] text-muted-foreground animate-pulse">loading…</p>
+      <p className="m-0 text-[13px] text-muted animate-pulse">loading…</p>
     </div>
   );
 }
@@ -74,16 +74,13 @@ function TabLoading() {
 function TabError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 border border-border">
-      <p className="m-0 text-[13px] text-destructive">failed to load: {message}</p>
+      <p className="m-0 text-[13px] text-danger">failed to load: {message}</p>
       <Pill onClick={onRetry}>retry</Pill>
     </div>
   );
 }
 
-const TRIGGER_CLS =
-  'relative rounded-none border-b-2 border-transparent px-3 sm:px-4 py-3 text-[13px] font-normal lowercase ' +
-  'text-muted-foreground transition-colors whitespace-nowrap hover:text-foreground ' +
-  'data-[state=active]:border-warm data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none';
+const TRIGGER_CLS = 'px-3 sm:px-4 py-3 text-[13px] font-normal lowercase whitespace-nowrap';
 
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : 'request failed';
@@ -271,68 +268,68 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
   const dirError = dirErrors[treePath];
 
   return (
-    <Tabs value={value} onValueChange={handleTabChange}>
-      {/* Negative margins extend the scroll zone to the page edge on mobile */}
-      <div className="relative min-w-0">
-        <div className="overflow-x-auto -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
-        <TabsList className="w-max min-w-full justify-start rounded-none border-b border-border bg-transparent p-0 h-auto mb-6">
-          <TabsTrigger value="code" className={TRIGGER_CLS}>
+    <Tabs selectedKey={value} onSelectionChange={key => handleTabChange(String(key))}>
+      <Tabs.ListContainer className="mb-6">
+        <Tabs.List aria-label="Repository tabs">
+          <Tabs.Tab id="code" className={TRIGGER_CLS}>
             code
-            <span className="ml-1.5 text-[11px] tabular-nums text-dim">{repo.files.length}</span>
-          </TabsTrigger>
-          <TabsTrigger value="commits" className={TRIGGER_CLS}>
+            <span className="ml-1.5 text-[11px] tabular-nums text-muted">{repo.files.length}</span>
+            <Tabs.Indicator />
+          </Tabs.Tab>
+          <Tabs.Tab id="commits" className={TRIGGER_CLS}>
             commits
-            <span className="ml-1.5 text-[11px] tabular-nums text-dim">{repo.commits.length}</span>
-          </TabsTrigger>
+            <span className="ml-1.5 text-[11px] tabular-nums text-muted">{repo.commits.length}</span>
+            <Tabs.Indicator />
+          </Tabs.Tab>
           {(['pulls', 'issues', 'certs', 'events'] as const).map(id => (
-            <TabsTrigger key={id} value={id} className={TRIGGER_CLS}>
+            <Tabs.Tab key={id} id={id} className={TRIGGER_CLS}>
               {id}
               {tabData[id].status === 'ready' && (
-                <span className="ml-1.5 text-[11px] tabular-nums text-dim">
+                <span className="ml-1.5 text-[11px] tabular-nums text-muted">
                   {tabData[id].items.length}
                 </span>
               )}
-            </TabsTrigger>
+              <Tabs.Indicator />
+            </Tabs.Tab>
           ))}
-        </TabsList>
-        </div>
-        {/* Right-edge fade — signals scrollable content on small screens */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
-      </div>
+        </Tabs.List>
+      </Tabs.ListContainer>
 
-      <TabsContent value="code" className="animate-fade-in mt-0">
+      <Tabs.Panel id="code" className="">
         <div className="flex items-center gap-1.5 mb-3 px-0.5 flex-wrap min-h-7">
           {showBreadcrumb && (
             <>
-              <button
-                onClick={() => goToDir('')}
-                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors duration-100
-                  focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+              <Button
+                variant="tertiary"
+                size="sm"
+                onPress={() => goToDir('')}
+                className="text-[12px] h-auto min-h-0 px-1"
               >
                 root
-              </button>
+              </Button>
               {crumbSegments.map((seg, idx) => {
                 const isLast = idx === crumbSegments.length - 1 && !filePath;
                 return (
                   <Fragment key={idx}>
-                    <span className="text-[12px] text-muted-foreground">/</span>
+                    <span className="text-[12px] text-muted">/</span>
                     {isLast ? (
                       <span className="text-[12px] text-foreground">{seg}</span>
                     ) : (
-                      <button
-                        onClick={() => goToDir(crumbSegments.slice(0, idx + 1).join('/'))}
-                        className="text-[12px] text-muted-foreground hover:text-foreground transition-colors duration-100
-                          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+                      <Button
+                        variant="tertiary"
+                        size="sm"
+                        onPress={() => goToDir(crumbSegments.slice(0, idx + 1).join('/'))}
+                        className="text-[12px] h-auto min-h-0 px-1"
                       >
                         {seg}
-                      </button>
+                      </Button>
                     )}
                   </Fragment>
                 );
               })}
               {filePath && (
                 <>
-                  <span className="text-[12px] text-muted-foreground">/</span>
+                  <span className="text-[12px] text-muted">/</span>
                   <span className="text-[12px] text-foreground">{filePath.split('/').pop()}</span>
                 </>
               )}
@@ -382,23 +379,23 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
             />
           </>
         )}
-      </TabsContent>
+      </Tabs.Panel>
 
-      <TabsContent value="commits" className="animate-fade-in mt-0">
+      <Tabs.Panel id="commits" className="">
         <CommitList commits={repo.commits} />
-      </TabsContent>
-      <TabsContent value="pulls" className="animate-fade-in mt-0">
+      </Tabs.Panel>
+      <Tabs.Panel id="pulls" className="">
         {renderLazyTab('pulls', 'pull requests', () => <PullList items={tabData.pulls.items} />)}
-      </TabsContent>
-      <TabsContent value="issues" className="animate-fade-in mt-0">
+      </Tabs.Panel>
+      <Tabs.Panel id="issues" className="">
         {renderLazyTab('issues', 'issues', () => <IssueList items={tabData.issues.items} />)}
-      </TabsContent>
-      <TabsContent value="certs" className="animate-fade-in mt-0">
+      </Tabs.Panel>
+      <Tabs.Panel id="certs" className="">
         {renderLazyTab('certs', 'certificates', () => <CertList items={tabData.certs.items} />)}
-      </TabsContent>
-      <TabsContent value="events" className="animate-fade-in mt-0">
+      </Tabs.Panel>
+      <Tabs.Panel id="events" className="">
         {renderLazyTab('events', 'events', () => <EventList items={tabData.events.items} />)}
-      </TabsContent>
+      </Tabs.Panel>
     </Tabs>
   );
 }

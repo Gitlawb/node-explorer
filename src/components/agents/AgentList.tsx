@@ -7,7 +7,7 @@ import { AgentRow } from './AgentRow';
 function AgentRowSkeleton() {
   return (
     <li className="grid grid-cols-[16px_minmax(0,1fr)] md:grid-cols-[24px_minmax(0,4fr)_minmax(0,3fr)_140px_110px]
-      items-start gap-x-3 md:gap-x-4 px-4 sm:px-6 py-4 border-b border-border-inner last:border-b-0">
+      items-start gap-x-3 md:gap-x-4 px-4 sm:px-6 py-4 border-b border-separator last:border-b-0">
       <span />
       <div>
         <Skeleton className="h-4 w-40 max-w-full" />
@@ -49,7 +49,7 @@ export function AgentList({ agents, loading = false, skeletonCount = 10 }: Agent
           {Array.from({ length: skeletonCount }, (_, i) => <AgentRowSkeleton key={i} />)}
         </ul>
       ) : agents.length === 0 ? (
-        <p className="m-0 py-20 text-center text-[13px] text-muted-foreground">no agents match</p>
+        <p className="m-0 py-20 text-center text-[13px] text-muted">no agents match</p>
       ) : (
         <ul className="m-0 p-0 list-none">
           {agents.map((agent, i) => <AgentRow key={agent.did} agent={agent} index={i} />)}

@@ -69,11 +69,11 @@ export function CodeView({ content, path, wrap = false }: CodeViewProps) {
             const inRange = range !== null && n >= range[0] && n <= range[1];
             return (
               <tr key={n} id={`L${n}`} className={cn('scroll-mt-14', inRange && 'line-hl')}>
-                <td className="w-[1%] pr-3 pl-4 text-right align-top select-none border-r border-border-inner">
+                <td className="w-[1%] pr-3 pl-4 text-right align-top select-none border-r border-separator">
                   <a
                     href={`#L${n}`}
                     onClick={e => handleGutterClick(e, n)}
-                    className="text-dim tabular-nums hover:text-muted-foreground"
+                    className="text-muted tabular-nums hover:text-muted"
                   >
                     {n}
                   </a>

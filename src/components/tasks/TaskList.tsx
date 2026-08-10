@@ -1,3 +1,4 @@
+import { Circle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import type { ApiTask } from '../../lib/api';
@@ -9,28 +10,28 @@ import { Skeleton } from '../ui/Skeleton';
 function TaskRow({ task, index }: { task: ApiTask; index: number }) {
   return (
     <li
-      className="border-b border-border-inner last:border-b-0 hover:bg-hover transition-colors
-        animate-fade-up motion-reduce:animate-none"
+      className="border-b border-separator last:border-b-0 hover:bg-surface-secondary transition-colors
+        "
       style={{ animationDelay: `${index * 16}ms` }}
     >
       <Link
         to={`/tasks/${task.id}`}
         className="grid grid-cols-[16px_minmax(0,1fr)_80px] md:grid-cols-[24px_minmax(0,1fr)_150px_150px_90px]
           items-baseline gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3
-          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
       >
         <span
           aria-hidden="true"
           className={cn('text-[8px] leading-none select-none self-start pt-[5px]', taskStatusColor(task.status))}
           title={task.status}
         >
-          ◆
+          <Circle size={7} fill="currentColor" />
         </span>
 
         {/* Title + kind/capability */}
         <span className="min-w-0">
           <span className="block truncate text-[13px] font-bold text-foreground">{taskTitle(task)}</span>
-          <span className="block mt-0.5 text-[11px] text-dim truncate">
+          <span className="block mt-0.5 text-[11px] text-muted truncate">
             {task.kind}
             {task.capability && <> · {task.capability}</>}
             <span className="md:hidden"> · {task.status}</span>
@@ -38,20 +39,20 @@ function TaskRow({ task, index }: { task: ApiTask; index: number }) {
         </span>
 
         {/* Delegator */}
-        <span className="hidden md:block text-[12px] text-muted-foreground truncate" title={task.delegator_did}>
+        <span className="hidden md:block text-[12px] text-muted truncate" title={task.delegator_did}>
           {shortDid(task.delegator_did)} →
         </span>
 
         {/* Assignee */}
         <span
-          className={cn('hidden md:block text-[12px] truncate', task.assignee_did ? 'text-muted-foreground' : 'text-dim')}
+          className={cn('hidden md:block text-[12px] truncate', task.assignee_did ? 'text-muted' : 'text-muted')}
           title={task.assignee_did ?? undefined}
         >
           {task.assignee_did ? shortDid(task.assignee_did) : 'unclaimed'}
         </span>
 
         {/* Time */}
-        <span className="text-[11px] text-dim tabular-nums text-right whitespace-nowrap">
+        <span className="text-[11px] text-muted tabular-nums text-right whitespace-nowrap">
           {timeAgo(task.created_at)}
         </span>
       </Link>
@@ -62,7 +63,7 @@ function TaskRow({ task, index }: { task: ApiTask; index: number }) {
 function TaskRowSkeleton() {
   return (
     <li className="grid grid-cols-[16px_minmax(0,1fr)_80px] md:grid-cols-[24px_minmax(0,1fr)_150px_150px_90px]
-      items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3 border-b border-border-inner last:border-b-0">
+      items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3 border-b border-separator last:border-b-0">
       <span />
       <div>
         <Skeleton className="h-4 w-64 max-w-full" />
@@ -101,7 +102,7 @@ export function TaskList({ tasks, loading = false, skeletonCount = 10, emptyMess
           {Array.from({ length: skeletonCount }, (_, i) => <TaskRowSkeleton key={i} />)}
         </ul>
       ) : tasks.length === 0 ? (
-        <p className="m-0 py-20 text-center text-[13px] text-muted-foreground">{emptyMessage}</p>
+        <p className="m-0 py-20 text-center text-[13px] text-muted">{emptyMessage}</p>
       ) : (
         <ul className="m-0 p-0 list-none">
           {tasks.map((task, i) => <TaskRow key={task.id} task={task} index={i} />)}

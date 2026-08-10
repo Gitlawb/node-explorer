@@ -1,3 +1,4 @@
+import { Circle } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import type { RepoFile } from '../../types/repo';
 import { getBlob } from '../../lib/api';
@@ -59,7 +60,7 @@ export function ReadmePanel({ owner, name, dirPath, entries }: ReadmePanelProps)
   return (
     <section className="mt-6 border border-border">
       <div className="flex items-center gap-3 px-4 sm:px-6 h-10 border-b border-border bg-surface">
-        <span aria-hidden="true" className="text-[8px] leading-none text-warm select-none">◆</span>
+        <Circle size={7} fill="currentColor" aria-hidden="true" className="text-accent" />
         <MicroLabel>{readmeName}</MicroLabel>
       </div>
       {state.status === 'loading' ? (

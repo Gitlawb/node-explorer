@@ -1,4 +1,6 @@
+import { Circle } from 'lucide-react';
 import { useState } from 'react';
+import { Button, Link } from '@heroui/react';
 import { cn } from '../../lib/utils';
 import type { ApiPeer } from '../../lib/api';
 import { pingPeer, peerHost, shortDid, timeAgo } from '../../lib/api';
@@ -28,18 +30,18 @@ function PingCell({ did }: { did: string }) {
 
   if (state.kind === 'done') {
     return (
-      <button
-        type="button"
-        onClick={ping}
-        title="ping again"
+      <Button
+        variant="tertiary"
+        size="sm"
+        onPress={ping}
+        aria-label="ping again"
         className={cn(
-          'text-[11px] tabular-nums cursor-pointer bg-transparent border-0 p-0 text-right',
-          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm',
-          state.ok ? 'text-ok' : 'text-destructive',
+          'text-[11px] tabular-nums h-auto min-h-0 px-1 py-0 text-right',
+          state.ok ? 'text-success' : 'text-danger',
         )}
       >
         {state.ok ? `${state.ms}ms ✓` : 'no reply'}
-      </button>
+      </Button>
     );
   }
   return (
@@ -54,16 +56,16 @@ function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
     <li
       className="grid grid-cols-[16px_minmax(0,1fr)_70px] md:grid-cols-[24px_minmax(0,4fr)_minmax(0,3fr)_120px_90px]
         items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3
-        border-b border-border-inner last:border-b-0 hover:bg-hover transition-colors
-        animate-fade-up motion-reduce:animate-none"
+        border-b border-separator last:border-b-0 hover:bg-surface-secondary transition-colors
+        "
       style={{ animationDelay: `${index * 16}ms` }}
     >
       <span
         aria-hidden="true"
-        className={cn('text-[8px] leading-none select-none', peer.reachable ? 'text-ok' : 'text-destructive')}
+        className={cn('text-[8px] leading-none select-none', peer.reachable ? 'text-success' : 'text-danger')}
         title={peer.reachable ? 'reachable' : 'unreachable'}
       >
-        ◆
+        <Circle size={7} fill="currentColor" />
       </span>
 
       {/* Identity */}
@@ -72,29 +74,28 @@ function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
           {shortDid(peer.did)}
         </span>
         <CopyButton value={peer.did} label="did" />
-        <a
+        <Link
           href={peer.http_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="md:hidden text-[11px] text-dim truncate hover:text-foreground transition-colors"
+          className="md:hidden text-[11px] text-muted truncate"
         >
           {peerHost(peer.http_url)}
-        </a>
+        </Link>
       </div>
 
       {/* Host */}
-      <a
+      <Link
         href={peer.http_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="hidden md:block text-[12px] text-muted-foreground truncate hover:text-warm-text transition-colors"
-        title={peer.http_url}
+        className="hidden md:block text-[12px] text-muted truncate"
       >
         {peerHost(peer.http_url)} ↗
-      </a>
+      </Link>
 
       {/* Last seen */}
-      <span className="hidden md:block text-[12px] text-dim tabular-nums whitespace-nowrap">
+      <span className="hidden md:block text-[12px] text-muted tabular-nums whitespace-nowrap">
         {peer.last_seen ? timeAgo(peer.last_seen) : 'never'}
       </span>
 
@@ -109,7 +110,7 @@ function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
 function PeerRowSkeleton() {
   return (
     <li className="grid grid-cols-[16px_minmax(0,1fr)_70px] md:grid-cols-[24px_minmax(0,4fr)_minmax(0,3fr)_120px_90px]
-      items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3 border-b border-border-inner last:border-b-0">
+      items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3 border-b border-separator last:border-b-0">
       <span />
       <Skeleton className="h-4 w-40 max-w-full" />
       <Skeleton className="hidden md:block h-4 w-36" />
@@ -144,7 +145,7 @@ export function PeerList({ peers, loading = false, skeletonCount = 10 }: PeerLis
           {Array.from({ length: skeletonCount }, (_, i) => <PeerRowSkeleton key={i} />)}
         </ul>
       ) : peers.length === 0 ? (
-        <p className="m-0 py-20 text-center text-[13px] text-muted-foreground">no peers match</p>
+        <p className="m-0 py-20 text-center text-[13px] text-muted">no peers match</p>
       ) : (
         <ul className="m-0 p-0 list-none">
           {peers.map((peer, i) => <PeerRow key={peer.did} peer={peer} index={i} />)}

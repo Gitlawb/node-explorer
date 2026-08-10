@@ -36,7 +36,7 @@ export function RepoList({
           {Array.from({ length: skeletonCount }, (_, i) => <RepoRowSkeleton key={i} />)}
         </ul>
       ) : repos.length === 0 ? (
-        <p className="m-0 py-20 text-center text-[13px] text-muted-foreground">{emptyMessage}</p>
+        <p className="m-0 py-20 text-center text-[13px] text-muted">{emptyMessage}</p>
       ) : (
         <ul className="m-0 p-0 list-none">
           {repos.map((repo, i) => <RepoRow key={repo.id} repo={repo} index={i} />)}

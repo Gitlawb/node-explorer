@@ -19,7 +19,7 @@ function Cell({ label, children, sub, className = '' }: {
       <div className="text-[20px] sm:text-[22px] font-bold leading-none tabular-nums text-foreground mb-2">
         {children}
       </div>
-      <p className="m-0 text-[11px] text-dim">{sub}</p>
+      <p className="m-0 text-[11px] text-muted">{sub}</p>
     </div>
   );
 }
@@ -31,7 +31,7 @@ export function StatsPanel({ stars, latestCommit, created }: StatsPanelProps) {
         {stars}
       </Cell>
       <Cell label="latest" sub={latestCommit ? latestCommit.time : 'no commits'} className="border-l border-border">
-        <span className="text-warm">{latestCommit ? latestCommit.shortHash : '—'}</span>
+        <span className="text-accent">{latestCommit ? latestCommit.shortHash : '—'}</span>
       </Cell>
       <Cell label="created" sub="first seen" className="border-l border-border">
         <span className="text-[15px] sm:text-[16px] whitespace-nowrap">{created}</span>

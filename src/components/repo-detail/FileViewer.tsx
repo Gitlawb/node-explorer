@@ -6,6 +6,7 @@ import { extractTocHeadings } from '../../lib/toc';
 import { useShortcut } from '../../hooks/useShortcuts';
 import { TocRail } from './TocRail';
 import { CopyButton } from '../ui/CopyButton';
+import { Button, Link } from '@heroui/react';
 import { Pill } from '../ui/Pill';
 import { MicroLabel } from '../ui/MicroLabel';
 import { Skeleton } from '../ui/Skeleton';
@@ -42,18 +43,17 @@ function RawLink({ href, children, 'aria-label': ariaLabel }: {
   'aria-label'?: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
       target="_blank"
-      rel="noopener"
+      rel="noopener noreferrer"
       aria-label={ariaLabel}
       className="inline-flex items-center h-7 px-2.5 text-[10px] font-medium uppercase tracking-[0.15em]
-        border border-border rounded-[2px] text-muted-foreground select-none flex-shrink-0
-        hover:border-dim hover:text-foreground transition-colors
-        focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+        border border-border rounded-[--radius] text-muted select-none flex-shrink-0
+        hover:border-muted hover:text-foreground transition-colors"
     >
       {children}
-    </a>
+    </Link>
   );
 }
 
@@ -140,18 +140,19 @@ export function FileViewer({
     <div className="overflow-hidden border border-border">
       {/* Header */}
       <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 min-h-10 py-1.5 border-b border-border bg-surface flex-wrap">
-        <button
-          onClick={onBack}
-          className="micro-label hover:text-foreground transition-colors duration-100 flex-shrink-0 cursor-pointer
-            focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+        <Button
+          variant="tertiary"
+          size="sm"
+          onPress={onBack}
+          className="text-[10px] font-medium tracking-[0.2em] uppercase h-auto min-h-0 px-1"
         >
           ← back
-        </button>
-        <span className="text-dim text-[12px] flex-shrink-0">/</span>
+        </Button>
+        <span className="text-muted text-[12px] flex-shrink-0">/</span>
         <span className="text-[12px] sm:text-[13px] text-foreground truncate min-w-0">{path}</span>
         {lang && !markdown && <MicroLabel className="flex-shrink-0 max-sm:hidden">{lang}</MicroLabel>}
         {headSha && (
-          <span className="text-[11px] text-dim flex-shrink-0 max-md:hidden" title="content served at HEAD">
+          <span className="text-[11px] text-muted flex-shrink-0 max-md:hidden" title="content served at HEAD">
             @ {shortSha(headSha)}
           </span>
         )}
@@ -159,10 +160,10 @@ export function FileViewer({
         <span className="flex-1" />
 
         <span aria-live="polite" className="flex-shrink-0">
-          {linkCopied && <span className="text-[11px] text-warm-text">link copied</span>}
+          {linkCopied && <span className="text-[11px] text-accent">link copied</span>}
         </span>
         {blob && (
-          <span className="text-[11px] tabular-nums text-dim flex-shrink-0 max-sm:hidden">
+          <span className="text-[11px] tabular-nums text-muted flex-shrink-0 max-sm:hidden">
             {lineCount !== null ? `${lineCount.toLocaleString()} lines · ${blob.sizeLabel}` : blob.sizeLabel}
           </span>
         )}
@@ -184,13 +185,13 @@ export function FileViewer({
       {/* Body */}
       {loading && (
         <div className="flex items-center justify-center py-16" aria-busy="true">
-          <p className="m-0 text-[13px] text-muted-foreground animate-pulse">loading…</p>
+          <p className="m-0 text-[13px] text-muted animate-pulse">loading…</p>
         </div>
       )}
 
       {error && !loading && (
         <CenteredPanel>
-          <p className="m-0 text-[13px] text-destructive">{error}</p>
+          <p className="m-0 text-[13px] text-danger">{error}</p>
         </CenteredPanel>
       )}
 
@@ -207,17 +208,17 @@ export function FileViewer({
               src={blob.url}
               alt={basename}
               loading="lazy"
-              className="inline-block max-w-full border border-border-inner"
+              className="inline-block max-w-full border border-separator"
             />
           </div>
         ) : blob.kind === 'binary' ? (
           <CenteredPanel>
-            <p className="m-0 text-[13px] text-muted-foreground">binary file · {blob.sizeLabel}</p>
+            <p className="m-0 text-[13px] text-muted">binary file · {blob.sizeLabel}</p>
             <RawLink href={blob.url} aria-label="download raw file">download raw ↗</RawLink>
           </CenteredPanel>
         ) : (
           <CenteredPanel>
-            <p className="m-0 text-[13px] text-muted-foreground">file too large to display · {blob.sizeLabel}</p>
+            <p className="m-0 text-[13px] text-muted">file too large to display · {blob.sizeLabel}</p>
             <div className="flex gap-2">
               <RawLink href={blob.url} aria-label="view raw file">view raw ↗</RawLink>
               <Pill onClick={onForce}>load anyway</Pill>

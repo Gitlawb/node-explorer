@@ -1,3 +1,4 @@
+import { Circle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { NodeSnapshot } from '../../lib/nodes';
 import { truncateDid } from '../../lib/api';
@@ -38,48 +39,48 @@ export function NodeCard({ snapshot }: { snapshot: NodeSnapshot }) {
         <span className="flex items-center gap-2 min-w-0">
           <span
             aria-hidden="true"
-            className={cn('text-[8px] shrink-0', reachable ? 'text-ok' : 'text-destructive')}
+            className={cn('text-[8px] shrink-0', reachable ? 'text-success' : 'text-danger')}
             title={reachable ? 'online' : 'offline'}
           >
-            ◆
+            <Circle size={7} fill="currentColor" />
           </span>
           <a
             href={node.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[12px] font-bold text-foreground truncate hover:text-warm-text transition-colors"
+            className="text-[12px] font-bold text-foreground truncate hover:text-accent transition-colors"
           >
             {node.label} ↗
           </a>
         </span>
-        {info?.version && <span className="text-[10px] text-dim shrink-0">v{info.version}</span>}
+        {info?.version && <span className="text-[10px] text-muted shrink-0">v{info.version}</span>}
       </div>
 
       <div className="px-4 py-3 flex flex-col gap-2 flex-1">
         {info?.did ? (
           <span className="flex items-center gap-2 min-w-0">
-            <span className="text-[11px] text-muted-foreground truncate" title={info.did}>
+            <span className="text-[11px] text-muted truncate" title={info.did}>
               {truncateDid(info.did)}
             </span>
             <CopyButton value={info.did} label="did" />
           </span>
         ) : (
-          <span className="text-[11px] text-dim">{reachable ? 'identity unavailable' : 'node unreachable'}</span>
+          <span className="text-[11px] text-muted">{reachable ? 'identity unavailable' : 'node unreachable'}</span>
         )}
 
         {p2p?.enabled && (
-          <span className="text-[10px] text-dim tabular-nums">
+          <span className="text-[10px] text-muted tabular-nums">
             libp2p · {p2p.connected_peers ?? 0} connected · {peers?.length ?? 0} known peers
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-3 border-t border-border-inner">
+      <div className="grid grid-cols-3 border-t border-separator">
         <Metric label="repos" value={stats ? stats.repos.toLocaleString() : '—'} />
-        <div className="border-l border-border-inner">
+        <div className="border-l border-separator">
           <Metric label="agents" value={stats ? stats.agents.toLocaleString() : '—'} />
         </div>
-        <div className="border-l border-border-inner">
+        <div className="border-l border-separator">
           <Metric label="pushes" value={stats ? stats.pushes.toLocaleString() : '—'} />
         </div>
       </div>

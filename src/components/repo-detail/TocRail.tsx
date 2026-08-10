@@ -50,10 +50,10 @@ export function TocRail({ headings }: TocRailProps) {
               href={`#${h.id}`}
               className={cn(
                 'block text-[11.5px] leading-snug truncate transition-colors',
-                'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm',
+                'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
                 activeId === h.id
-                  ? 'text-warm-text'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'text-accent'
+                  : 'text-muted hover:text-foreground',
               )}
             >
               {h.text}

@@ -1,3 +1,4 @@
+import { Circle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Repository } from '../../types/repo';
 import { shortDid } from '../../lib/api';
@@ -22,13 +23,13 @@ export function RepoRow({ repo, index }: RepoRowProps) {
       {...prefetch}
       className="group relative grid grid-cols-[16px_minmax(0,1fr)_auto] md:grid-cols-[24px_minmax(0,1fr)_120px_100px]
         items-start gap-x-3 md:gap-x-4 px-4 sm:px-6 py-4 md:py-5
-        border-b border-border-inner last:border-b-0
-        hover:bg-hover transition-colors animate-fade-up motion-reduce:animate-none"
+        border-b border-separator last:border-b-0
+        hover:bg-surface-secondary transition-colors "
       style={{ animationDelay: `${index * 16}ms` }}
     >
       {/* Status dot — aligned to the name line */}
-      <span aria-hidden="true" className="pt-[6px] text-[8px] leading-none text-status-dot group-hover:text-warm transition-colors select-none">
-        ◆
+      <span aria-hidden="true" className="pt-[6px] text-[8px] leading-none text-muted group-hover:text-accent transition-colors select-none">
+        <Circle size={7} fill="currentColor" />
       </span>
 
       {/* Line 1: identity + pills · Line 2: description */}
@@ -39,9 +40,9 @@ export function RepoRow({ repo, index }: RepoRowProps) {
             data-row-link
             className="text-[14px] leading-snug outline-none min-w-0
               after:absolute after:inset-0 after:content-['']
-              focus-visible:after:ring-1 focus-visible:after:ring-warm focus-visible:after:ring-inset"
+              focus-visible:after:ring-1 focus-visible:after:ring-accent focus-visible:after:ring-inset"
           >
-            <span className="text-dim">{shortDid(repo.owner)}/</span>
+            <span className="text-muted">{shortDid(repo.owner)}/</span>
             <span className="font-bold text-foreground break-all sm:break-normal">{repo.name}</span>
           </Link>
 
@@ -50,13 +51,13 @@ export function RepoRow({ repo, index }: RepoRowProps) {
             <Pill>{repo.visibility}</Pill>
             <CopyButton value={`git clone ${repo.cloneUrl}`} label="clone" />
             {repo.isMirror && (
-              <span className="text-[10px] uppercase tracking-[0.15em] text-dim pl-1">fork</span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-muted pl-1">fork</span>
             )}
           </div>
         </div>
 
         {repo.description && (
-          <p className="m-0 mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground line-clamp-2 md:line-clamp-1">
+          <p className="m-0 mt-1.5 text-[12.5px] leading-relaxed text-muted line-clamp-2 md:line-clamp-1">
             {repo.description}
           </p>
         )}
@@ -69,11 +70,11 @@ export function RepoRow({ repo, index }: RepoRowProps) {
 
       {/* Updated + stars */}
       <div className="pt-[3px] text-right whitespace-nowrap">
-        <span className="block text-[11px] md:text-[12px] tabular-nums text-dim">
+        <span className="block text-[11px] md:text-[12px] tabular-nums text-muted">
           {repo.updatedAt}
         </span>
         {repo.stars > 0 && (
-          <span className="block mt-1 text-[11px] tabular-nums text-warm-text">★ {repo.stars}</span>
+          <span className="block mt-1 text-[11px] tabular-nums text-accent">★ {repo.stars}</span>
         )}
       </div>
     </li>

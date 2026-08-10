@@ -8,16 +8,16 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-border mt-auto">
-      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 sm:px-8 lg:px-12 py-5 text-[11px] text-muted-foreground">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 sm:px-8 lg:px-12 py-5 text-[11px] text-muted">
         <span className="whitespace-nowrap">
           gitlawb explorer
-          {version && <span className="text-dim">&ensp;v{version}</span>}
-          {node?.network && <span className="text-dim">&ensp;{node.network}</span>}
+          {version && <span className="text-muted">&ensp;v{version}</span>}
+          {node?.network && <span className="text-muted">&ensp;{node.network}</span>}
         </span>
 
         {node?.did && (
           <span className="flex items-center gap-2 min-w-0">
-            <span title={node.did} className="text-dim whitespace-nowrap">
+            <span title={node.did} className="text-muted whitespace-nowrap">
               {truncateDid(node.did)}
             </span>
             <CopyButton value={node.did} label="did" />

@@ -1,14 +1,15 @@
+import { Kbd as HeroKbd, Button } from '@heroui/react';
 import { Modal } from '../ui/Modal';
 import { MicroLabel } from '../ui/MicroLabel';
 
 function Kbd({ children }: { children: string }) {
-  return <kbd className="kbd">{children}</kbd>;
+  return <HeroKbd><HeroKbd.Content>{children}</HeroKbd.Content></HeroKbd>;
 }
 
 function Row({ keys, desc }: { keys: string[]; desc: string }) {
   return (
     <div className="flex items-center justify-between gap-4 py-1.5">
-      <dt className="m-0 text-[12.5px] text-muted-foreground">{desc}</dt>
+      <dt className="m-0 text-[12.5px] text-muted">{desc}</dt>
       <dd className="m-0 flex gap-1 shrink-0">
         {keys.map(k => <Kbd key={k}>{k}</Kbd>)}
       </dd>
@@ -26,14 +27,14 @@ export function KeyboardCheatsheet({ open, onClose }: KeyboardCheatsheetProps) {
     <Modal open={open} onClose={onClose} label="keyboard shortcuts">
       <div className="flex items-center justify-between px-5 h-11 border-b border-border">
         <MicroLabel>keyboard shortcuts</MicroLabel>
-        <button
-          onClick={onClose}
+        <Button
+          onPress={onClose}
           aria-label="close"
-          className="text-[12px] text-dim hover:text-foreground cursor-pointer
-            focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+          variant="tertiary"
+          size="sm"
         >
           esc
-        </button>
+        </Button>
       </div>
       <dl className="m-0 grid sm:grid-cols-2 gap-x-10 gap-y-4 p-5">
         <div>

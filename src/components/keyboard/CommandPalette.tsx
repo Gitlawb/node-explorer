@@ -1,23 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
+import { Input } from '@heroui/react';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useShortcuts } from '../../hooks/useShortcuts';
 import { fetchRepos, shortDid, SERVER_SEARCH_ENABLED } from '../../lib/api';
 import type { ApiRepo } from '../../lib/api';
 import { getCachedAgents } from '../../hooks/useAgents';
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
-import { useShortcuts } from '../../hooks/useShortcuts';
 import { cn } from '../../lib/utils';
-import { Modal } from '../ui/Modal';
 
-interface PaletteItem {
-  id: string;
-  section: string;
-  label: string;
-  hint?: string;
-  run: () => void;
-}
-
-// One-shot session cache for the client-side repo list (server q= not
-// available until the node's search deploy; see SERVER_SEARCH_ENABLED).
 let recentReposCache: ApiRepo[] | null = null;
 let recentReposPromise: Promise<ApiRepo[]> | null = null;
 
@@ -40,6 +30,13 @@ function loadRecentRepos(): Promise<ApiRepo[]> {
 
 const TAB_IDS = ['code', 'commits', 'pulls', 'issues', 'certs', 'events'];
 
+interface PaletteItem {
+  id: string;
+  label: string;
+  hint?: string;
+  run: () => void;
+}
+
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
@@ -52,11 +49,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [sel, setSel] = useState(0);
   const [repos, setRepos] = useState<ApiRepo[] | null>(SERVER_SEARCH_ENABLED ? [] : recentReposCache);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const debouncedQuery = useDebouncedValue(query.trim(), 250);
   const detailMatch = matchPath('/repos/:owner/:name', pathname);
 
-  // Reset per open
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
@@ -66,7 +63,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
   }
 
-  // Repo source: server search when available, else one-shot recent list
   useEffect(() => {
     if (!open) return;
     if (SERVER_SEARCH_ENABLED) {
@@ -83,63 +79,46 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     return () => { cancelled = true; };
   }, [open, debouncedQuery]);
 
-  const items = useMemo<PaletteItem[]>(() => {
-    const q = query.trim().toLowerCase();
-    const matches = (s: string) => !q || s.toLowerCase().includes(q);
-    const list: PaletteItem[] = [];
+  const items = useMemo<(PaletteItem & { section: string })[]>(() => {
+    const list: (PaletteItem & { section: string })[] = [];
 
-    // Actions
-    if (matches('go to repositories')) {
-      list.push({ id: 'nav-repos', section: 'actions', label: 'go to repositories', run: () => navigate('/repos') });
-    }
-    if (matches('go to agents')) {
-      list.push({ id: 'nav-agents', section: 'actions', label: 'go to agents', run: () => navigate('/agents') });
-    }
+    list.push({ id: 'nav-repos', section: 'actions', label: 'go to repositories', run: () => navigate('/repos') });
+    list.push({ id: 'nav-agents', section: 'actions', label: 'go to agents', run: () => navigate('/agents') });
+
     if (detailMatch) {
-      if (matches('find file')) {
+      list.push({
+        id: 'find-file', section: 'actions', label: 'find file', hint: 't',
+        run: () => setOpenModal('finder'),
+      });
+      for (const tab of TAB_IDS) {
         list.push({
-          id: 'find-file', section: 'actions', label: 'find file', hint: 't',
-          run: () => setOpenModal('finder'),
+          id: `tab-${tab}`, section: 'actions', label: `open: ${tab}`,
+          run: () => navigate(`${pathname}${tab === 'code' ? '' : `?tab=${tab}`}`),
         });
       }
-      for (const tab of TAB_IDS) {
-        if (matches(`open ${tab}`)) {
-          list.push({
-            id: `tab-${tab}`, section: 'actions', label: `open: ${tab}`,
-            run: () => navigate(`${pathname}${tab === 'code' ? '' : `?tab=${tab}`}`),
-          });
-        }
-      }
     }
 
-    // Repos
     const repoRows = (repos ?? []).filter(r =>
-      SERVER_SEARCH_ENABLED
-        ? true
-        : !q ||
-          r.name.toLowerCase().includes(q) ||
-          r.owner_did.toLowerCase().includes(q) ||
-          (r.description ?? '').toLowerCase().includes(q),
+      SERVER_SEARCH_ENABLED || !query ||
+        r.name.toLowerCase().includes(query.toLowerCase()) ||
+        r.owner_did.toLowerCase().includes(query.toLowerCase()) ||
+        (r.description ?? '').toLowerCase().includes(query.toLowerCase()),
     );
     for (const r of repoRows.slice(0, 12)) {
       list.push({
-        id: `repo-${r.id}`,
-        section: SERVER_SEARCH_ENABLED ? 'repositories' : 'recent repos',
+        id: `repo-${r.id}`, section: SERVER_SEARCH_ENABLED ? 'repositories' : 'recent repos',
         label: `${shortDid(r.owner_did)}/${r.name}`,
         hint: r.description ?? undefined,
         run: () => navigate(`/repos/${r.owner_did}/${r.name}`),
       });
     }
 
-    // Agents (cache only)
     const agents = getCachedAgents();
-    if (agents && q) {
-      for (const a of agents.filter(a => a.did.toLowerCase().includes(q)).slice(0, 5)) {
+    if (agents && query) {
+      for (const a of agents.filter(a => a.did.toLowerCase().includes(query.toLowerCase())).slice(0, 5)) {
         list.push({
-          id: `agent-${a.did}`,
-          section: 'agents',
-          label: shortDid(a.did),
-          hint: a.capabilities.join(', '),
+          id: `agent-${a.did}`, section: 'agents',
+          label: shortDid(a.did), hint: a.capabilities.join(', '),
           run: () => navigate(`/repos?owner=${encodeURIComponent(a.did.split(':').pop() ?? '')}`),
         });
       }
@@ -148,13 +127,24 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     return list;
   }, [query, repos, detailMatch, pathname, navigate, setOpenModal]);
 
-  // Render-phase clamp when items shrink
-  const itemsKey = `${query}:${items.length}`;
+  const filtered = useMemo(() => {
+    if (!query) return items;
+    const q = query.toLowerCase();
+    return items.filter(i => i.label.toLowerCase().includes(q) || (i.hint ?? '').toLowerCase().includes(q));
+  }, [items, query]);
+
+  const itemsKey = `${query}:${filtered.length}`;
   const [prevItemsKey, setPrevItemsKey] = useState(itemsKey);
   if (prevItemsKey !== itemsKey) {
     setPrevItemsKey(itemsKey);
-    if (sel >= items.length) setSel(0);
+    if (sel >= filtered.length) setSel(0);
   }
+
+  useEffect(() => {
+    if (!listRef.current) return;
+    const item = listRef.current.children[sel] as HTMLElement | undefined;
+    item?.scrollIntoView?.({ block: 'nearest' });
+  }, [sel]);
 
   const pick = (item: PaletteItem) => {
     onClose();
@@ -164,65 +154,85 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSel(s => Math.min(s + 1, items.length - 1));
+      setSel(s => Math.min(s + 1, filtered.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSel(s => Math.max(s - 1, 0));
-    } else if (e.key === 'Enter' && items[sel]) {
+    } else if (e.key === 'Enter' && filtered[sel]) {
       e.preventDefault();
-      pick(items[sel]);
+      pick(filtered[sel]);
     }
   };
 
-  let lastSection = '';
+  useEffect(() => {
+    if (open) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [open]);
+
+  if (!open) return null;
 
   return (
-    <Modal open={open} onClose={onClose} label="command palette">
-      <input
-        autoFocus
-        type="text"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="jump to repo, agent, or action…"
-        aria-label="command palette"
-        autoComplete="off"
-        spellCheck={false}
-        className="w-full h-12 px-5 text-[13px] bg-transparent border-b border-border
-          text-foreground placeholder:text-dim focus:outline-none"
-      />
-      <ul className="m-0 p-0 list-none max-h-[50vh] overflow-y-auto" role="listbox" aria-label="commands">
-        {items.map((item, i) => {
-          const showSection = item.section !== lastSection;
-          lastSection = item.section;
-          return (
-            <li key={item.id} role="option" aria-selected={i === sel}>
-              {showSection && (
-                <div className="micro-label px-5 pt-3 pb-1">{item.section}</div>
-              )}
-              <button
-                type="button"
-                onClick={() => pick(item)}
-                onMouseEnter={() => setSel(i)}
-                className={cn(
-                  'flex w-full items-baseline gap-3 text-left px-5 py-2 text-[12.5px] cursor-pointer',
-                  i === sel ? 'bg-hover text-foreground' : 'text-muted-foreground',
+    <div
+      className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh]"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[580px] bg-surface border border-border rounded-lg shadow-overlay overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <Input
+          autoFocus
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="jump to repo, agent, or action…"
+          aria-label="command palette"
+          autoComplete="off"
+          spellCheck="false"
+          variant="secondary"
+          className="w-full h-12 px-5 border-b border-border rounded-none shadow-none"
+        />
+        <div ref={listRef} className="max-h-[50vh] overflow-y-auto" role="listbox" aria-label="commands">
+          {filtered.map((item, i) => {
+            const prevSection = i > 0 ? filtered[i - 1].section : '';
+            const showSection = item.section !== prevSection;
+            return (
+              <div key={item.id} role="option" aria-selected={i === sel}>
+                {showSection && (
+                  <div className="text-[10px] font-medium tracking-[0.2em] uppercase text-muted px-5 pt-3 pb-1">
+                    {item.section}
+                  </div>
                 )}
-              >
-                <span className={cn('truncate', i === sel && 'font-bold text-foreground')}>{item.label}</span>
-                {item.hint && <span className="ml-auto shrink-0 max-w-[45%] truncate text-[11px] text-dim">{item.hint}</span>}
-              </button>
-            </li>
-          );
-        })}
-        {items.length === 0 && (
-          <li className="px-5 py-6 text-center text-[12.5px] text-muted-foreground">nothing matches</li>
-        )}
-      </ul>
-      <div className="flex items-center justify-between px-5 h-9 border-t border-border text-[11px] text-dim">
-        <span>{!SERVER_SEARCH_ENABLED && 'searching the 200 most recently updated repos'}</span>
-        <span>↑↓ navigate · ↵ open · esc close</span>
+                <div
+                  onClick={() => pick(item)}
+                  onPointerEnter={() => setSel(i)}
+                  className={cn(
+                    'flex items-baseline gap-3 px-5 py-2 text-[12.5px] cursor-pointer transition-colors',
+                    i === sel ? 'bg-surface-secondary text-foreground' : 'text-muted',
+                  )}
+                >
+                  <span className={cn('truncate', i === sel && 'font-semibold')}>{item.label}</span>
+                  {item.hint && (
+                    <span className="ml-auto shrink-0 max-w-[45%] truncate text-[11px] text-muted">
+                      {item.hint}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="px-5 py-6 text-center text-[12.5px] text-muted">nothing matches</div>
+          )}
+        </div>
+        <div className="flex items-center justify-between px-5 h-9 border-t border-border text-[11px] text-muted">
+          <span>{!SERVER_SEARCH_ENABLED && 'searching the 200 most recently updated repos'}</span>
+          <span>↑↓ navigate · ↵ open · esc close</span>
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 }

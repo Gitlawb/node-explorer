@@ -1,6 +1,20 @@
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+  PaginationSummary,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectPopover,
+  Menu,
+  MenuItem,
+} from '@heroui/react';
 import { PER_PAGE_OPTIONS } from '../../lib/constants';
-import { Pill } from '../ui/Pill';
-import { MicroLabel } from '../ui/MicroLabel';
 
 interface RepoPaginationProps {
   page: number;
@@ -14,6 +28,10 @@ interface RepoPaginationProps {
   noun?: string;
 }
 
+function range(start: number, end: number): number[] {
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
+
 export function RepoPagination({
   page,
   totalPages,
@@ -25,43 +43,80 @@ export function RepoPagination({
   onPerPageChange,
   noun = 'repos',
 }: RepoPaginationProps) {
+  const pages = totalPages <= 7
+    ? range(1, totalPages)
+    : page <= 4
+      ? [...range(1, 5), 0, totalPages]
+      : page >= totalPages - 3
+        ? [1, 0, ...range(totalPages - 4, totalPages)]
+        : [1, 0, page - 1, page, page + 1, 0, totalPages];
+
   return (
-    <nav
-      aria-label="pagination"
-      className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-6 sm:mt-8"
-    >
-      <span className="text-[12px] tabular-nums text-muted-foreground">
+    <nav className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-6 sm:mt-8">
+      <PaginationSummary className="text-[12px] tabular-nums text-muted">
         {windowStart.toLocaleString()}–{windowEnd.toLocaleString()} of {totalCount.toLocaleString()} {noun}
-      </span>
+      </PaginationSummary>
 
       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-        <MicroLabel>
-          <label htmlFor="per-page">per page</label>
-        </MicroLabel>
-        <select
-          id="per-page"
-          value={perPage}
-          onChange={e => onPerPageChange(Number(e.target.value))}
-          className="select-chevron h-7 pl-2.5 pr-6 text-[11px] bg-transparent border border-border rounded-[2px]
-            text-muted-foreground cursor-pointer
-            focus:outline-none focus-visible:ring-1 focus-visible:ring-warm hover:border-dim transition-colors"
-        >
-          {PER_PAGE_OPTIONS.map(n => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
-
-        <Pill onClick={() => onPageChange(page - 1)} disabled={page <= 1} aria-label="previous page">
-          ← prev
-        </Pill>
-
-        <span className="text-[12px] tabular-nums text-muted-foreground select-none">
-          {page.toLocaleString()} / {totalPages.toLocaleString()}
+        <span className="text-[10px] font-medium tracking-[0.2em] uppercase text-muted">
+          per page
         </span>
+        <Select
+          selectedKey={String(perPage)}
+          onSelectionChange={key => onPerPageChange(Number(key))}
+          variant="secondary"
+          className="min-w-[70px]"
+        >
+          <SelectTrigger className="h-7 text-[11px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopover>
+            <Menu>
+              {PER_PAGE_OPTIONS.map(n => (
+                <MenuItem key={n} id={String(n)}>{n}</MenuItem>
+              ))}
+            </Menu>
+          </SelectPopover>
+        </Select>
 
-        <Pill onClick={() => onPageChange(page + 1)} disabled={page >= totalPages} aria-label="next page">
-          next →
-        </Pill>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                isDisabled={page <= 1}
+                onPress={() => onPageChange(page - 1)}
+                aria-label="previous page"
+              >
+                prev
+              </PaginationPrevious>
+            </PaginationItem>
+            {pages.map((p, i) =>
+              p === 0 ? (
+                <PaginationItem key={`e${i}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={p}>
+                  <PaginationLink
+                    isActive={p === page}
+                    onPress={() => onPageChange(p)}
+                  >
+                    {p}
+                  </PaginationLink>
+                </PaginationItem>
+              ),
+            )}
+            <PaginationItem>
+              <PaginationNext
+                isDisabled={page >= totalPages}
+                onPress={() => onPageChange(page + 1)}
+                aria-label="next page"
+              >
+                next
+              </PaginationNext>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </div>
     </nav>
   );
