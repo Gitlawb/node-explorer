@@ -25,13 +25,15 @@
     <!-- gitlawb:social-meta:end -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <!-- Anti-FOUC: set theme class before first paint. Dark is the default theme. -->
     <script>
       (function () {
         var t = localStorage.getItem('theme');
         var dark = t ? t === 'dark' : true;
-        document.documentElement.classList.toggle('dark', dark);
+        var root = document.documentElement;
+        root.classList.toggle('dark', dark);
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
       })();
     </script>
   </head>

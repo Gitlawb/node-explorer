@@ -1,11 +1,11 @@
 /// <reference types="vitest/config" />
+import fs from 'fs'
 import path from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -21,6 +21,13 @@ export default defineConfig({
         target: 'https://node.gitlawb.com',
         changeOrigin: true,
         secure: true,
+        bypass(req) {
+          const url = req.url!
+          const localPath = path.resolve(__dirname, url.slice(1))
+          if (fs.existsSync(localPath)) {
+            return url
+          }
+        },
       },
       // Node identity lives at the node's root path, which the SPA occupies locally.
       '/node-info': {
