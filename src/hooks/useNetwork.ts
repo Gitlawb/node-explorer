@@ -16,16 +16,10 @@ interface Result {
  * coverage from the nodes' ref-update feeds. Unreachable nodes stay in the
  * result (rendered as offline) and are excluded from replication analysis.
  */
-export function useNetwork(refreshKey = 0): Result {
+export function useNetwork(): Result {
   const tick = useAutoRefresh(60_000, true);
   const [snapshots, setSnapshots] = useState<NodeSnapshot[] | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [prevRefreshKey, setPrevRefreshKey] = useState(refreshKey);
-  if (prevRefreshKey !== refreshKey) {
-    setPrevRefreshKey(refreshKey);
-    setLoading(true);
-  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,7 +34,7 @@ export function useNetwork(refreshKey = 0): Result {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [refreshKey, tick]);
+  }, [tick]);
 
   const replication = useMemo(() => {
     if (!snapshots) return null;

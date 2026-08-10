@@ -8,7 +8,6 @@ interface Options {
   page: number;
   perPage: number;
   search?: string;
-  refreshKey?: number;
 }
 
 interface Result {
@@ -29,7 +28,7 @@ interface Result {
  * filtered/paged client-side, re-fetched on a visibility-aware 60s tick.
  * Reachable peers sort first, then by most recent last_seen.
  */
-export function usePeers({ page, perPage, search = '', refreshKey = 0 }: Options): Result {
+export function usePeers({ page, perPage, search = '' }: Options): Result {
   const tick = useAutoRefresh(60_000, true);
   const [all, setAll] = useState<ApiPeer[] | null>(null);
   const [p2p, setP2p] = useState<P2PInfo | null>(null);
@@ -37,13 +36,6 @@ export function usePeers({ page, perPage, search = '', refreshKey = 0 }: Options
   const [error, setError] = useState<string | null>(null);
 
   const debouncedSearch = useDebouncedValue(search.trim().toLowerCase(), 300);
-
-  const [prevRefreshKey, setPrevRefreshKey] = useState(refreshKey);
-  if (prevRefreshKey !== refreshKey) {
-    setPrevRefreshKey(refreshKey);
-    setLoading(true);
-    setError(null);
-  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,7 +55,7 @@ export function usePeers({ page, perPage, search = '', refreshKey = 0 }: Options
         setLoading(false);
       });
     return () => controller.abort();
-  }, [refreshKey, tick]);
+  }, [tick]);
 
   const derived = useMemo(() => {
     if (!all) {
