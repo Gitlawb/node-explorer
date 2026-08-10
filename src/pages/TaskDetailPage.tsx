@@ -1,3 +1,4 @@
+import { Circle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -8,38 +9,25 @@ import { MicroLabel } from '../components/ui/MicroLabel';
 import { Pill } from '../components/ui/Pill';
 import { CopyButton } from '../components/ui/CopyButton';
 import { Skeleton } from '../components/ui/Skeleton';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '../components/ui/breadcrumb';
-
 function PageBreadcrumb({ id }: { id: string }) {
   return (
-    <Breadcrumb className="mb-8 sm:mb-10">
-      <BreadcrumbList className="text-[12.5px] gap-1.5 sm:gap-2 flex-nowrap min-w-0">
-        <BreadcrumbItem className="shrink-0">
-          <BreadcrumbLink asChild>
-            <Link
-              to="/tasks"
-              className="text-muted-foreground hover:text-foreground transition-colors duration-150
-                focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
-            >
-              tasks
-            </Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator className="text-dim shrink-0" />
-        <BreadcrumbItem className="min-w-0">
-          <BreadcrumbPage className="text-foreground font-bold truncate block">
-            {id.slice(0, 8)}
-          </BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
+    <nav aria-label="breadcrumb" className="mb-8 sm:mb-10">
+      <ol className="flex items-center gap-1.5 sm:gap-2 text-[12.5px] flex-nowrap min-w-0 text-muted">
+        <li className="shrink-0 inline-flex items-center gap-1.5">
+          <Link
+            to="/tasks"
+            className="hover:text-foreground transition-colors duration-150
+              focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >
+            tasks
+          </Link>
+        </li>
+        <li role="presentation" aria-hidden="true" className="text-muted shrink-0">/</li>
+        <li className="min-w-0 inline-flex items-center gap-1.5">
+          <span className="text-foreground font-bold truncate block">{id.slice(0, 8)}</span>
+        </li>
+      </ol>
+    </nav>
   );
 }
 
@@ -58,7 +46,7 @@ function DidField({ label, did }: { label: string; did: string }) {
       <span className="flex items-center gap-2 min-w-0">
         <Link
           to={`/agents?q=${encodeURIComponent(didKeySegment(did))}`}
-          className="truncate hover:text-warm-text transition-colors"
+          className="truncate hover:text-accent transition-colors"
           title={did}
         >
           {truncateDid(did)}
@@ -76,7 +64,7 @@ function JsonPanel({ label, raw }: { label: string; raw: string }) {
         <MicroLabel>{label}</MicroLabel>
         <CopyButton value={raw} label={label} />
       </div>
-      <pre className="m-0 px-4 sm:px-6 py-4 text-[12px] leading-[1.7] text-muted-foreground overflow-x-auto whitespace-pre-wrap break-words">
+      <pre className="m-0 px-4 sm:px-6 py-4 text-[12px] leading-[1.7] text-muted overflow-x-auto whitespace-pre-wrap break-words">
         {prettyJson(raw)}
       </pre>
     </section>
@@ -115,11 +103,10 @@ export default function TaskDetailPage() {
       <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12">
         <PageBreadcrumb id={id} />
         <div className="flex flex-col items-center justify-center py-24 sm:py-32 text-center border border-border">
-          <span className="text-[56px] mb-8 opacity-10 select-none" aria-hidden="true">◆</span>
           <h1 className="m-0 mb-3 text-[20px] font-bold lowercase">
             {error === 'not_found' ? 'task not found' : 'failed to load task'}
           </h1>
-          <p className="m-0 mb-6 text-[13px] text-muted-foreground">
+          <p className="m-0 mb-6 text-[13px] text-muted">
             {error === 'not_found'
               ? `no task with id ${id} exists on this node`
               : 'the node did not answer — try again'}
@@ -135,12 +122,12 @@ export default function TaskDetailPage() {
       <PageBreadcrumb id={id} />
 
       {/* Header */}
-      <section className="border border-border grid-lines mb-6">
+      <section className="border border-border mb-6">
         <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-12 border-b border-border">
           <MicroLabel>agent task</MicroLabel>
           {task && (
             <span className={cn('text-[11px] flex items-center gap-1.5', taskStatusColor(task.status))}>
-              <span aria-hidden="true" className="text-[8px]">◆</span>
+              <Circle size={7} fill="currentColor" aria-hidden="true" />
               {task.status}
             </span>
           )}
@@ -156,10 +143,10 @@ export default function TaskDetailPage() {
               <h1 className="m-0 text-[24px] sm:text-[32px] font-extrabold leading-tight tracking-tight text-foreground mb-3 break-words">
                 {taskTitle(task)}
               </h1>
-              <div className="flex items-center gap-2 flex-wrap text-[12px] text-muted-foreground">
+              <div className="flex items-center gap-2 flex-wrap text-[12px] text-muted">
                 <Pill>{task.kind}</Pill>
                 {task.capability && <Pill>{task.capability}</Pill>}
-                <span className="text-dim">id {task.id}</span>
+                <span className="text-muted">id {task.id}</span>
                 <CopyButton value={task.id} label="id" />
               </div>
             </>
@@ -176,7 +163,7 @@ export default function TaskDetailPage() {
               {task.assignee_did ? (
                 <DidField label="assignee" did={task.assignee_did} />
               ) : (
-                <Field label="assignee"><span className="text-dim">unclaimed</span></Field>
+                <Field label="assignee"><span className="text-muted">unclaimed</span></Field>
               )}
               <Field label="created">
                 <span title={task.created_at}>{formatDate(task.created_at)} · {timeAgo(task.created_at)}</span>
@@ -185,10 +172,10 @@ export default function TaskDetailPage() {
                 <span title={task.updated_at}>{formatDate(task.updated_at)} · {timeAgo(task.updated_at)}</span>
               </Field>
               <Field label="deadline">
-                {task.deadline ? <span title={task.deadline}>{formatDate(task.deadline)}</span> : <span className="text-dim">none</span>}
+                {task.deadline ? <span title={task.deadline}>{formatDate(task.deadline)}</span> : <span className="text-muted">none</span>}
               </Field>
               <Field label="repo">
-                {task.repo_id ? <span className="break-all">{task.repo_id}</span> : <span className="text-dim">—</span>}
+                {task.repo_id ? <span className="break-all">{task.repo_id}</span> : <span className="text-muted">—</span>}
               </Field>
             </div>
           </section>
@@ -198,7 +185,7 @@ export default function TaskDetailPage() {
             {task.payload && <JsonPanel label="payload" raw={task.payload} />}
             {task.result && <JsonPanel label="result" raw={task.result} />}
             {!task.payload && !task.result && (
-              <p className="m-0 text-[13px] text-dim">this task carries no payload or result data</p>
+              <p className="m-0 text-[13px] text-muted">this task carries no payload or result data</p>
             )}
           </div>
         </>

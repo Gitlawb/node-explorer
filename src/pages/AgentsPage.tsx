@@ -1,14 +1,13 @@
 import { useSearchParams } from 'react-router-dom';
 import { useCallback, useRef, useState } from 'react';
+import { Input } from '@heroui/react';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useAgents } from '../hooks/useAgents';
-import { useRefreshKey } from '../hooks/useRefreshKey';
 import { AgentList } from '../components/agents/AgentList';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
 import { MicroLabel } from '../components/ui/MicroLabel';
-import { Pill } from '../components/ui/Pill';
 
 export default function AgentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,8 +17,6 @@ export default function AgentsPage() {
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const rawPer = Number(searchParams.get('per'));
   const perPage = PER_PAGE_OPTIONS.includes(rawPer) ? rawPer : DEFAULT_PER_PAGE;
-
-  const { refreshKey, refresh } = useRefreshKey();
 
   const setParams = useCallback(
     (updates: Record<string, string | null>, replace = false) => {
@@ -39,7 +36,6 @@ export default function AgentsPage() {
     page,
     perPage,
     search,
-    refreshKey,
   });
 
   const listRef = useRef<HTMLDivElement>(null);
@@ -66,16 +62,12 @@ export default function AgentsPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        refreshing={loading}
-        onRefresh={refresh}
-        title="agents."
-        indexLabel="agent index"
+        title="agents"
         countNoun="agents"
-        statLabel="agents"
         description={
           <p className="m-0">
             Registered identities on this gitlawb node. Every agent is a{' '}
-            <code className="text-warm-text">did:key</code> — inspect capabilities, trust scores,
+            <code className="text-accent">did:key</code> — inspect capabilities, trust scores,
             and jump to the repositories each agent owns.
           </p>
         }
@@ -88,9 +80,8 @@ export default function AgentsPage() {
           <MicroLabel className="block mb-1.5">
             <label htmlFor="agent-search">search</label>
           </MicroLabel>
-          <input
+          <Input
             id="agent-search"
-            type="search"
             value={searchValue}
             onChange={e => {
               setSearchValue(e.target.value);
@@ -98,18 +89,15 @@ export default function AgentsPage() {
             }}
             placeholder="search by did or capability…"
             autoComplete="off"
-            spellCheck={false}
-            className="w-full h-9 px-3 text-[13px] bg-transparent border border-border rounded-[2px]
-              text-foreground placeholder:text-dim
-              focus:outline-none focus-visible:ring-1 focus-visible:ring-warm focus:border-dim
-              transition-colors"
+            spellCheck="false"
+            variant="secondary"
+            className="w-full h-9 px-3 rounded-[--radius]"
           />
         </div>
 
         {error ? (
           <div className="border border-border py-16 text-center">
-            <p className="m-0 text-[13px] text-destructive mb-4">failed to load agents: {error}</p>
-            <Pill onClick={refresh}>retry</Pill>
+            <p className="m-0 text-[13px] text-danger mb-4">failed to load agents: {error}</p>
           </div>
         ) : (
           <>

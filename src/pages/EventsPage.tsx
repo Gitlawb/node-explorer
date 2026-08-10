@@ -1,17 +1,17 @@
+import { Circle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useCallback, useRef, useState } from 'react';
+import { Input } from '@heroui/react';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useRefUpdates } from '../hooks/useRefUpdates';
 import type { EventSourceFilter } from '../hooks/useRefUpdates';
-import { useRefreshKey } from '../hooks/useRefreshKey';
 import { timeAgo, MAX_EVENT_LIMIT } from '../lib/api';
 import { RefUpdateList } from '../components/events/RefUpdateList';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
 import { MicroLabel } from '../components/ui/MicroLabel';
 import { Pill } from '../components/ui/Pill';
-import { cn } from '../lib/utils';
 
 const SOURCES: EventSourceFilter[] = ['all', 'local', 'gossip'];
 
@@ -26,8 +26,6 @@ export default function EventsPage() {
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const rawPer = Number(searchParams.get('per'));
   const perPage = PER_PAGE_OPTIONS.includes(rawPer) ? rawPer : DEFAULT_PER_PAGE;
-
-  const { refreshKey, refresh } = useRefreshKey();
 
   const setParams = useCallback(
     (updates: Record<string, string | null>, replace = false) => {
@@ -46,7 +44,7 @@ export default function EventsPage() {
   const {
     events, allCount, gossipCount, latest,
     totalCount, totalPages, windowStart, windowEnd, loading, error,
-  } = useRefUpdates({ page, perPage, search, source, live, refreshKey });
+  } = useRefUpdates({ page, perPage, search, source, live });
 
   const listRef = useRef<HTMLDivElement>(null);
   useListNav(listRef);
@@ -69,17 +67,14 @@ export default function EventsPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        refreshing={loading}
-        onRefresh={refresh}
-        title="events."
-        indexLabel="ref-update feed"
+        title="events"
         countNoun="events"
         description={
           <p className="m-0">
             Every ref update this node knows about — pushes it received directly{' '}
-            (<span aria-hidden="true" className="text-status-dot">◆</span> local) and updates gossiped
+            (<Circle size={6} fill="currentColor" className="inline text-muted" aria-hidden="true" /> local) and updates gossiped
             in from peer nodes over libp2p{' '}
-            (<span aria-hidden="true" className="text-warm">◆</span> gossip). The feed keeps the
+            (<Circle size={6} fill="currentColor" className="inline text-accent" aria-hidden="true" /> gossip). The feed keeps the
             latest {MAX_EVENT_LIMIT} events{live ? ' and refreshes itself every 30s' : ''}.
           </p>
         }
@@ -99,9 +94,8 @@ export default function EventsPage() {
             <MicroLabel className="block mb-1.5">
               <label htmlFor="event-search">search</label>
             </MicroLabel>
-            <input
+            <Input
               id="event-search"
-              type="search"
               value={searchValue}
               onChange={e => {
                 setSearchValue(e.target.value);
@@ -109,13 +103,9 @@ export default function EventsPage() {
               }}
               placeholder="search by repo, ref, or pusher…"
               autoComplete="off"
-              spellCheck={false}
-              className={cn(
-                'w-full h-9 px-3 text-[13px] bg-transparent border border-border rounded-[2px]',
-                'text-foreground placeholder:text-dim',
-                'focus:outline-none focus-visible:ring-1 focus-visible:ring-warm focus:border-dim',
-                'transition-colors',
-              )}
+              spellCheck="false"
+              variant="secondary"
+              className="w-full h-9 px-3 rounded-[--radius]"
             />
           </div>
 
@@ -143,15 +133,14 @@ export default function EventsPage() {
               aria-pressed={live}
               title="auto-refresh every 30s while the tab is visible"
             >
-              {live ? '◆ live' : 'paused'}
+              {live ? <><Circle size={6} fill="currentColor" className="text-success inline" /> live</> : 'paused'}
             </Pill>
           </div>
         </div>
 
         {error ? (
           <div className="border border-border py-16 text-center">
-            <p className="m-0 text-[13px] text-destructive mb-4">failed to load events: {error}</p>
-            <Pill onClick={refresh}>retry</Pill>
+            <p className="m-0 text-[13px] text-danger mb-4">failed to load events: {error}</p>
           </div>
         ) : (
           <>

@@ -4,7 +4,6 @@ import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import type { RepoSort } from '../lib/api';
 import { useRepositories } from '../hooks/useRepositories';
-import { useRefreshKey } from '../hooks/useRefreshKey';
 import { RepoList } from '../components/repos/RepoList';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
@@ -29,8 +28,6 @@ export default function RepositoriesPage() {
   const rawFork = searchParams.get('fork') as ForkFilter | null;
   const forkFilter: ForkFilter = rawFork && FORK_FILTERS.includes(rawFork) ? rawFork : 'all';
 
-  const { refreshKey, refresh } = useRefreshKey();
-
   const setParams = useCallback(
     (updates: Record<string, string | null>, replace = false) => {
       setSearchParams(prev => {
@@ -46,7 +43,7 @@ export default function RepositoriesPage() {
   );
 
   const { repos, totalCount, totalPages, windowStart, windowEnd, loading, error, searchScope } =
-    useRepositories({ page, perPage, search, sort, owner, refreshKey });
+    useRepositories({ page, perPage, search, sort, owner });
 
   const visibleRepos = useMemo(() => {
     if (!repos || forkFilter === 'all') return repos;
@@ -66,8 +63,6 @@ export default function RepositoriesPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        refreshing={loading}
-        onRefresh={refresh}
       />
 
       <div className="pt-8 pb-20">
@@ -95,8 +90,7 @@ export default function RepositoriesPage() {
 
         {error ? (
           <div className="border border-border py-16 text-center">
-            <p className="m-0 text-[13px] text-destructive mb-4">failed to load repositories: {error}</p>
-            <Pill onClick={refresh}>retry</Pill>
+            <p className="m-0 text-[13px] text-danger mb-4">failed to load repositories: {error}</p>
           </div>
         ) : (
           <>
