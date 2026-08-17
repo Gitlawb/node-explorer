@@ -3,7 +3,7 @@
 // uses DOMPurify (browser-native) instead of sanitize-html; the effective
 // whitelist mirrors the web app's config via an afterSanitizeAttributes hook.
 import { Marked } from 'marked';
-import { gfmHeadingId } from 'marked-gfm-heading-id';
+import { gfmHeadingId, resetHeadings } from 'marked-gfm-heading-id';
 import markedAlert from 'marked-alert';
 import markedFootnote from 'marked-footnote';
 import { markedEmoji } from 'marked-emoji';
@@ -32,6 +32,36 @@ const engine = new Marked({ gfm: true })
       },
     }),
   );
+
+/**
+ * Heading ids must depend only on the document, never on how many documents
+ * this engine has already rendered.
+ *
+ * `gfmHeadingId` keeps one slugger on the shared engine, and its de-duplication
+ * counter carries across `parse` calls. Rendering a document a second time in
+ * the same session therefore produced `prerequisites-1`, then `-2`, and a third
+ * time `-3` — so `/docs/node#7-unstake` matched nothing, every table-of-contents
+ * link depended on render order, and a shared deep link broke for the next
+ * reader. Resetting before each parse makes the ids a pure function of the
+ * markdown.
+ */
+let parseChain: Promise<unknown> = Promise.resolve();
+
+function parseWithStableHeadingIds(md: string): Promise<string> {
+  // Parses are serialized, not merely reset before each one. `engine.parse` is
+  // async — it awaits Shiki for every fence — so two renders started close
+  // together interleave: the second one's reset lands in the middle of the
+  // first one's run, and from then on both feed the same slugger, which
+  // de-duplicates across them and appends `-1`. React's StrictMode starts the
+  // document fetch twice, so this was the normal case, not a rare race.
+  const run = parseChain.then(() => {
+    resetHeadings();
+    return engine.parse(md, { async: true });
+  });
+  // The chain must not stay rejected, or every later parse inherits the failure.
+  parseChain = run.catch(() => undefined);
+  return run;
+}
 
 const ALLOWED_TAGS = [
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'img', 'br', 'hr',
@@ -69,7 +99,7 @@ export async function renderMarkdown(md: string, ctx: MarkdownCtx): Promise<stri
   const isAbsolute = (url: string) =>
     /^https?:\/\//.test(url) || url.startsWith('mailto:') || url.startsWith('#');
 
-  const raw = await engine.parse(md, { async: true });
+  const raw = await parseWithStableHeadingIds(md);
 
   // Fresh instance per call: hooks close over this render's ctx, and
   // concurrent renders (README + file preview) must not share hooks.
@@ -124,7 +154,7 @@ export async function renderMarkdown(md: string, ctx: MarkdownCtx): Promise<stri
  * translation, and externally with https URLs that open in a new tab.
  */
 export async function renderDocsMarkdown(md: string): Promise<string> {
-  const raw = await engine.parse(md, { async: true });
+  const raw = await parseWithStableHeadingIds(md);
   const purifier = createDOMPurify(window);
 
   purifier.addHook('afterSanitizeAttributes', node => {
