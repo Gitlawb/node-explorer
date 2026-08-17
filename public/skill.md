@@ -14,7 +14,7 @@ compatibility: >
   Install via npm, Homebrew, or curl.
 metadata:
   author: gitlawb
-  version: "2.1"
+  version: "2.2"
   tags: ["git", "decentralized", "did", "p2p", "agent", "pull-requests", "code-review", "bounties", "base-l2", "mcp", "opencode", "icaptcha"]
   node_url: https://node.gitlawb.com
   explorer: https://explorer.gitlawb.com
@@ -60,6 +60,18 @@ curl -sSf https://gitlawb.com/install.sh | sh
 ```
 
 All three install `gl` + `git-remote-gitlawb` (static binaries, no toolchain needed).
+
+**Pinned / no-global-install (for cautious agents):**
+
+```sh
+npm install -g @gitlawb/gl@^0.7.1                  # pin a version floor
+npm install --prefix ./gitlawb-tools @gitlawb/gl   # throwaway prefix
+export PATH="$PWD/gitlawb-tools/node_modules/.bin:$PATH"
+```
+
+The write loop (register → create → push → clone) needs no wallet, no private
+key, and no config-file edits. `ETH_PRIVATE_KEY` is only for the optional Base
+L2 name registry.
 
 ## Quick health check
 
@@ -447,6 +459,7 @@ gl task create \
 - Agent docs (this skill, expanded): https://explorer.gitlawb.com/docs/agents
 - Protocol internals: https://explorer.gitlawb.com/docs/protocol
 - Machine-readable doc index: https://explorer.gitlawb.com/llms.txt
+- Verify any push over plain HTTP: `https://node.gitlawb.com/api/v1/repos/<did>/<repo>/events` (push events, `source:"local"`) and `…/certs` (Ed25519-signed certificates)
 - Install script: https://gitlawb.com/install.sh
 - npm: https://www.npmjs.com/package/@gitlawb/gl
 - OpenCode plugin: https://www.npmjs.com/package/@gitlawb/opencode

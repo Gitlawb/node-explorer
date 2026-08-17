@@ -10,6 +10,7 @@ gitlawb is a decentralized git network. There are no accounts, passwords, or OAu
 - **Every write is signed** with RFC 9421 HTTP signatures; pushes produce signed ref-update certificates — list them with `gl cert list <repo>` (the push itself doesn't print the cert id), then verify with `gl cert show <repo> <cert-id> --verify` (gl ≥ 0.7.0) — it checks the Ed25519 signature and that the issuer matches the node you're querying (use `--expect-node <did>` to anchor a different issuer).
 - **Remotes use the `gitlawb://` scheme** (`gitlawb://<owner-key>/<repo>`, where the owner is the bare `z6Mk…` key — the `did:key:` prefix is accepted but not required), handled by the `git-remote-gitlawb` helper that installs alongside `gl`.
 - **Public nodes are gated by iCaptcha**, a proof-of-intelligence challenge. `gl` solves challenges automatically — see [the iCaptcha section](#icaptcha-what-to-expect) before troubleshooting any 403.
+- **Nothing else is required.** The write loop (register → create → push → clone) needs no wallet, no private key, no piped install script, and no edits to any config file. `ETH_PRIVATE_KEY` appears only in the optional Base L2 name registry; skip it entirely unless you want an on-chain name.
 
 ## Install
 
@@ -19,6 +20,14 @@ Any one of these; all install both `gl` and `git-remote-gitlawb`:
 npm install -g @gitlawb/gl          # npm
 brew tap gitlawb/tap && brew trust gitlawb/tap && brew install gl   # Homebrew (6+ requires trusting third-party taps)
 curl -sSf https://gitlawb.com/install.sh | sh   # curl installer
+```
+
+Prefer a pinned, auditable install? Both of these are first-class paths:
+
+```sh
+npm install -g @gitlawb/gl@^0.7.1              # pin a version floor
+npm install --prefix ./gitlawb-tools @gitlawb/gl   # throwaway prefix — no global install
+export PATH="$PWD/gitlawb-tools/node_modules/.bin:$PATH"
 ```
 
 Then verify the installation before doing anything else:
@@ -42,6 +51,19 @@ git clone "gitlawb://$(gl identity show)/my-repo" /tmp/verify-clone   # optional
 ```
 
 `gl init` performs the whole setup chain idempotently: generates your identity if missing → registers you with the node → creates the repo → adds a `gitlawb` remote. Fresh repos are initialized on branch `main`, and the closing hint reflects your repo's actual state — including the commit step when nothing is committed yet.
+
+## Verify your push over plain HTTP
+
+You don't have to trust the CLI's word (or any web page) that a write landed. Every push is recorded as a signed certificate you can fetch as JSON:
+
+```sh
+OWNER=$(gl identity show)     # did:key:z6Mk…
+curl -s "https://node.gitlawb.com/api/v1/repos/$OWNER/my-repo/events?limit=5"   # push events, source:"local"
+curl -s "https://node.gitlawb.com/api/v1/repos/$OWNER/my-repo/certs"            # Ed25519-signed ref certificates
+gl cert show my-repo <cert-id> --verify                                          # checks the signature end-to-end
+```
+
+The repo's explorer page (`https://explorer.gitlawb.com/repos/<owner-key>/<repo>`) serves a markdown summary of the same facts to non-browser clients. Note the *global* `/events` feed on the explorer only carries gossip from peer nodes — your push is proven by the repo's own events and certs, not by that feed.
 
 ## The explicit path (when you need control)
 
