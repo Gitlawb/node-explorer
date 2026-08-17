@@ -5,22 +5,18 @@ import { Input } from '@heroui/react';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useRefUpdates } from '../hooks/useRefUpdates';
-import type { EventSourceFilter } from '../hooks/useRefUpdates';
 import { timeAgo, MAX_EVENT_LIMIT } from '../lib/api';
 import { RefUpdateList } from '../components/events/RefUpdateList';
+import { LocalPushPanel } from '../components/events/LocalPushPanel';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
 import { MicroLabel } from '../components/ui/MicroLabel';
 import { Pill } from '../components/ui/Pill';
 
-const SOURCES: EventSourceFilter[] = ['all', 'local', 'gossip'];
-
 export default function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const search = searchParams.get('q') ?? '';
-  const rawSource = searchParams.get('src') as EventSourceFilter | null;
-  const source: EventSourceFilter = rawSource && SOURCES.includes(rawSource) ? rawSource : 'all';
   const live = searchParams.get('live') !== 'off';
   const rawPage = Number(searchParams.get('page'));
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
@@ -42,9 +38,9 @@ export default function EventsPage() {
   );
 
   const {
-    events, allCount, gossipCount, latest,
+    events, allCount, peerCount, latest,
     totalCount, totalPages, windowStart, windowEnd, loading, error,
-  } = useRefUpdates({ page, perPage, search, source, live });
+  } = useRefUpdates({ page, perPage, search, live });
 
   const listRef = useRef<HTMLDivElement>(null);
   useListNav(listRef);
@@ -71,24 +67,23 @@ export default function EventsPage() {
         countNoun="events"
         description={
           <p className="m-0">
-            Every ref update this node knows about — pushes it received directly{' '}
-            (<Circle size={6} fill="currentColor" className="inline text-muted" aria-hidden="true" /> local) and updates gossiped
-            in from peer nodes over libp2p{' '}
-            (<Circle size={6} fill="currentColor" className="inline text-accent" aria-hidden="true" /> gossip). The feed keeps the
+            Ref updates gossiped in from peer nodes over libp2p{' '}
+            (<Circle size={6} fill="currentColor" className="inline text-accent" aria-hidden="true" /> gossip).
+            Pushes received directly by this node are recorded as signed certificates on each
+            repository's page — search below to find them. The feed keeps the
             latest {MAX_EVENT_LIMIT} events{live ? ' and refreshes itself every 30s' : ''}.
           </p>
         }
         cells={[
           { label: 'in feed', value: allCount > 0 ? allCount.toLocaleString() : '—' },
-          { label: 'local', value: allCount > 0 ? (allCount - gossipCount).toLocaleString() : '—' },
-          { label: 'gossip', value: allCount > 0 ? gossipCount.toLocaleString() : '—' },
+          { label: 'peer nodes', value: allCount > 0 ? peerCount.toLocaleString() : '—' },
           { label: 'latest', value: latest ? timeAgo(latest.timestamp) : '—' },
         ]}
       />
 
       <div className="pt-8 pb-20">
 
-        {/* Toolbar: search + source filter + live toggle */}
+        {/* Toolbar: search + live toggle */}
         <div className="flex flex-wrap items-end gap-x-6 gap-y-4 mb-4">
           <div className="flex-1 min-w-[240px] max-w-[560px]">
             <MicroLabel className="block mb-1.5">
@@ -110,22 +105,6 @@ export default function EventsPage() {
           </div>
 
           <div>
-            <MicroLabel className="block mb-1.5">source</MicroLabel>
-            <div className="flex gap-1.5">
-              {SOURCES.map(s => (
-                <Pill
-                  key={s}
-                  active={source === s}
-                  onClick={() => setParams({ src: s === 'all' ? null : s, page: null })}
-                  aria-pressed={source === s}
-                >
-                  {s}
-                </Pill>
-              ))}
-            </div>
-          </div>
-
-          <div>
             <MicroLabel className="block mb-1.5">feed</MicroLabel>
             <Pill
               active={live}
@@ -137,6 +116,8 @@ export default function EventsPage() {
             </Pill>
           </div>
         </div>
+
+        <LocalPushPanel query={search} />
 
         {error ? (
           <div className="border border-border py-16 text-center">
@@ -150,9 +131,9 @@ export default function EventsPage() {
                 loading={loading}
                 skeletonCount={Math.min(perPage, 12)}
                 emptyMessage={
-                  search || source !== 'all'
-                    ? 'no events match'
-                    : 'no ref updates yet — push a repo to this node to see activity'
+                  search
+                    ? 'no gossip events match — pushes to this node show up under local pushes and on the repo page'
+                    : 'no gossip from peer nodes yet'
                 }
               />
             </div>

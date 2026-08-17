@@ -91,7 +91,9 @@ export function RefUpdateList({
   loading = false,
   skeletonCount = 10,
   header = true,
-  emptyMessage = 'no ref updates yet — push a repo to this node to see activity',
+  // The global feed only carries gossip from peers; a push to this node lands
+  // on the repo page, not here — don't promise otherwise.
+  emptyMessage = 'no gossip from peer nodes yet',
 }: RefUpdateListProps) {
   return (
     <div className={cn(
