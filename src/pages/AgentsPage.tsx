@@ -1,13 +1,16 @@
 import { useSearchParams } from 'react-router-dom';
 import { useCallback, useRef, useState } from 'react';
-import { Input } from '@heroui/react';
+import { SearchField } from '../components/register/SearchField';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useAgents } from '../hooks/useAgents';
+import type { TrustBand, AgentSort } from '../hooks/useAgents';
+import { Dropdown } from '../components/ui/Dropdown';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { AgentList } from '../components/agents/AgentList';
+import { AgentEcosystem } from '../components/agents/AgentEcosystem';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
-import { MicroLabel } from '../components/ui/MicroLabel';
 
 export default function AgentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,6 +20,13 @@ export default function AgentsPage() {
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const rawPer = Number(searchParams.get('per'));
   const perPage = PER_PAGE_OPTIONS.includes(rawPer) ? rawPer : DEFAULT_PER_PAGE;
+
+  const BANDS: TrustBand[] = ['all', 'maintainer', 'trusted', 'contributor', 'newcomer'];
+  const SORTS: AgentSort[] = ['trust', 'lowest', 'newest', 'seen'];
+  const rawBand = searchParams.get('trust') as TrustBand | null;
+  const band: TrustBand = rawBand && BANDS.includes(rawBand) ? rawBand : 'all';
+  const rawSort = searchParams.get('sort') as AgentSort | null;
+  const sort: AgentSort = rawSort && SORTS.includes(rawSort) ? rawSort : 'trust';
 
   const setParams = useCallback(
     (updates: Record<string, string | null>, replace = false) => {
@@ -32,11 +42,8 @@ export default function AgentsPage() {
     [setSearchParams],
   );
 
-  const { agents, totalCount, totalPages, windowStart, windowEnd, loading, error } = useAgents({
-    page,
-    perPage,
-    search,
-  });
+  const { agents, bandCounts, totalCount, totalPages, windowStart, windowEnd, loading, error } =
+    useAgents({ page, perPage, search, band, sort });
 
   const listRef = useRef<HTMLDivElement>(null);
   useListNav(listRef);
@@ -53,7 +60,7 @@ export default function AgentsPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
 
 
       <RepoHero
@@ -62,7 +69,7 @@ export default function AgentsPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        title="agents"
+        title="Agents"
         countNoun="agents"
         description={
           <p className="m-0">
@@ -75,28 +82,60 @@ export default function AgentsPage() {
 
       <div className="pt-8 pb-20">
 
-        {/* Search */}
-        <div className="max-w-[560px] mb-4">
-          <MicroLabel className="block mb-1.5">
-            <label htmlFor="agent-search">search</label>
-          </MicroLabel>
-          <Input
+        {/* The tooling that can drive this network — a claim about the protocol
+            surface, not about which vendors have agents registered here. */}
+        <section className="pb-2">
+          <h2 className="m-0 mb-1 text-center text-[15px] font-semibold text-foreground">
+            Works with
+          </h2>
+          <AgentEcosystem />
+        </section>
+
+        {/* Search, trust band, and sort on one row. Nearly every agent on this
+            node sits in one band, so the counts are the useful part — they say
+            up front how lopsided the register is. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mb-5">
+          <SearchField
             id="agent-search"
+            label="Search agents"
             value={searchValue}
-            onChange={e => {
-              setSearchValue(e.target.value);
-              setParams({ q: e.target.value, page: null }, true);
+            onChange={v => {
+              setSearchValue(v);
+              setParams({ q: v, page: null }, true);
             }}
-            placeholder="search by did or capability…"
-            autoComplete="off"
-            spellCheck="false"
-            variant="secondary"
-            className="w-full h-9 px-3 rounded-[--radius]"
+            placeholder="Search by DID or capability…"
+            className="flex-1 max-w-[460px]"
+          />
+
+          <Dropdown
+            id="agent-sort"
+            label="Sort"
+            value={sort}
+            onChange={v => setParams({ sort: v === 'trust' ? null : v, page: null })}
+            options={[
+              { value: 'trust', label: 'Highest trust' },
+              { value: 'lowest', label: 'Lowest trust' },
+              { value: 'newest', label: 'Newest registered' },
+              { value: 'seen', label: 'Recently seen' },
+            ]}
+          />
+        </div>
+
+        <div className="mb-5">
+          <SegmentedControl
+            label="Filter by trust tier"
+            value={band}
+            onChange={b => setParams({ trust: b === 'all' ? null : b, page: null })}
+            options={BANDS.map(b => ({
+              value: b,
+              label: b === 'all' ? 'all tiers' : b,
+              count: bandCounts[b],
+            }))}
           />
         </div>
 
         {error ? (
-          <div className="border border-border py-16 text-center">
+          <div className="border-t border-border py-16 text-center">
             <p className="m-0 text-[13px] text-danger mb-4">failed to load agents: {error}</p>
           </div>
         ) : (
