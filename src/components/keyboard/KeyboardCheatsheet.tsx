@@ -1,6 +1,7 @@
-import { Kbd as HeroKbd, Button } from '@heroui/react';
+import { Kbd as HeroKbd, Button } from '../register/controls';
 import { Modal } from '../ui/Modal';
 import { MicroLabel } from '../ui/MicroLabel';
+import { modifierKeyLabel } from '../../lib/platform';
 
 function Kbd({ children }: { children: string }) {
   return <HeroKbd><HeroKbd.Content>{children}</HeroKbd.Content></HeroKbd>;
@@ -39,7 +40,7 @@ export function KeyboardCheatsheet({ open, onClose }: KeyboardCheatsheetProps) {
       <dl className="m-0 grid sm:grid-cols-2 gap-x-10 gap-y-4 p-5">
         <div>
           <MicroLabel className="block mb-2">global</MicroLabel>
-          <Row keys={['⌘', 'k']} desc="command palette" />
+          <Row keys={[modifierKeyLabel(), 'K']} desc="command palette" />
           <Row keys={['?']} desc="this cheatsheet" />
           <Row keys={['j', 'k']} desc="move through list rows" />
           <Row keys={['↵']} desc="open focused row" />
