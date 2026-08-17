@@ -66,7 +66,22 @@ export function NumberTicker({
       )}
       {...props}
     >
-      {startValue}
+      {/* The true value, not `startValue`.
+
+          As shipped, this rendered 0 and only ever wrote the real number from
+          the spring's change handler, which is gated behind useInView. A stat
+          below the fold therefore read "0 repos" for a node with 2,120 — and 0
+          is not a placeholder, it is a wrong fact stated confidently, where the
+          "—" this component's callers use for missing data would have been
+          honest. The same held wherever the animation could not run.
+
+          Rendering the value here costs nothing: when the animation does run,
+          its first frame overwrites this within a tick and the count-up looks
+          identical. When it does not, the figure is simply correct. */}
+      {Intl.NumberFormat("en-US", {
+        minimumFractionDigits: decimalPlaces,
+        maximumFractionDigits: decimalPlaces,
+      }).format(Number(value.toFixed(decimalPlaces)))}
     </span>
   )
 }
