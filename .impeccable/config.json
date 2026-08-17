@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "geist mono",
+        "createdAt": "2026-08-17T13:42:35.010Z",
+        "reason": "user confirmed: owner requires the explorer to match gitlawb.com, whose live site computes font-family 'Geist Mono' on body and h1 (extracted 2026-08-17)"
+      }
+    ]
+  }
+}
