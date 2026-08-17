@@ -2,6 +2,13 @@
   "extends": "./tsconfig.api.json",
   "files": [],
   "include": [],
+  // Mirrors tsconfig.app.json's paths so the shadcn CLI can resolve the "@/"
+  // alias when adding registry components; without it the CLI writes to a
+  // literal "@" directory.
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  },
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.api.json" },
