@@ -15,3 +15,24 @@ export function taskStatusColor(status: string): string {
       return 'text-muted';
   }
 }
+
+/**
+ * Fill colour per task status, for bars and swatches.
+ *
+ * Written out rather than derived from `taskStatusColor` by swapping the
+ * prefix: Tailwind generates CSS only for class names it can read in the
+ * source, so a name assembled at runtime produces no rule at all and the
+ * element paints nothing.
+ */
+export function taskStatusFill(status: string): string {
+  switch (status) {
+    case 'claimed':
+      return 'bg-accent';
+    case 'completed':
+      return 'bg-success';
+    case 'failed':
+      return 'bg-danger';
+    default: // pending & unknown
+      return 'bg-muted';
+  }
+}

@@ -16,7 +16,7 @@ import {
 import type { ApiRefUpdate } from '../lib/api';
 import { CopyButton } from '../components/ui/CopyButton';
 import { Skeleton } from '../components/ui/Skeleton';
-import { TASK_STATUSES, taskStatusColor } from '../components/tasks/status';
+import { TASK_STATUSES, taskStatusColor, taskStatusFill } from '../components/tasks/status';
 import { Section, Seal } from '../components/register/primitives';
 import { RepoShowcase } from '../components/home/RepoShowcase';
 import { AgentSurface } from '../components/home/AgentSurface';
@@ -137,7 +137,10 @@ export default function HomePage() {
   const peerRef1 = useRef<HTMLDivElement>(null);
   const peerRef2 = useRef<HTMLDivElement>(null);
   const peerRefs = [peerRef0, peerRef1, peerRef2];
-  const gossipPeers = (peers ?? []).filter(p => p.reachable).slice(0, 3);
+  // How many links the gossip diagram may draw. Bounded by the refs allocated
+  // below, and taken from libp2p's own count rather than from HTTP peer
+  // reachability, which says nothing about gossip connectivity.
+  const meshLinks = Math.min(3, p2p?.connected_peers ?? 0);
 
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -389,6 +392,24 @@ export default function HomePage() {
           <aside className="min-w-0 flex flex-col gap-6">
 
             <Section title="Clone a repository">
+              {/* Name the repository. The terminal demonstrates a real command
+                  against a real repo on this node, but the command wraps a
+                  ~60-character did:key remote across three lines, so which repo
+                  it clones was effectively unreadable — and the copy button
+                  below said only "Copy clone command", for something the reader
+                  could not identify. */}
+              {cloneRepo && (
+                <p className="m-0 mb-2.5 text-[12.5px] text-muted">
+                  Demonstrated on{' '}
+                  <Link
+                    to={`/repos/${encodeURIComponent(cloneRepo.owner_did)}/${encodeURIComponent(cloneRepo.name)}`}
+                    className="font-mono text-accent hover:underline"
+                  >
+                    {shortDid(cloneRepo.owner_did)}/{cloneRepo.name}
+                  </Link>
+                  , one of this node&rsquo;s repositories.
+                </p>
+              )}
               {cloneRepo ? (
                 // Magic UI's Terminal ships `h-full max-h-100`, sized for a
                 // fixed-height parent; in an auto-height section it overflows
@@ -453,7 +474,7 @@ export default function HomePage() {
                     }
                   >
                     <span className="inline-flex items-center gap-1.5">
-                      <Copy size={13} /> Copy clone command
+                      <Copy size={13} /> Copy command for {cloneRepo.name}
                     </span>
                   </RippleButton>
                 </ConfettiButton>
@@ -468,6 +489,34 @@ export default function HomePage() {
                 </Link>
               }
             >
+              {/* A bar before the numbers. This register is overwhelmingly one
+                  status — 198 of 200 completed on this node — and four figures
+                  side by side make that read as four comparable quantities.
+                  The bar shows the proportion at a glance; the numbers below
+                  stay for the exact values. Widths come from the same counts,
+                  so the two cannot disagree. */}
+              {tasks && tasks.length > 0 && (
+                <div
+                  className="mb-3 flex h-1.5 w-full overflow-hidden rounded-[var(--radius-control)] bg-surface-secondary"
+                  role="img"
+                  aria-label={taskCounts
+                    .filter(t => t.count > 0)
+                    .map(t => `${t.count} ${t.status}`)
+                    .join(', ')}
+                >
+                  {taskCounts
+                    .filter(({ count }) => count > 0)
+                    .map(({ status, count }) => (
+                      <span
+                        key={status}
+                        title={`${count} ${status}`}
+                        style={{ width: `${(count / tasks.length) * 100}%` }}
+                        className={cn('h-full', taskStatusFill(status))}
+                      />
+                    ))}
+                </div>
+              )}
+
               <dl className="flex flex-wrap gap-x-6 gap-y-2 m-0 mb-3">
                 {taskCounts.map(({ status, count }) => (
                   <div key={status} className="flex items-baseline gap-1.5">
@@ -511,7 +560,17 @@ export default function HomePage() {
                 </Link>
               }
             >
-              {p2p?.enabled && gossipPeers.length > 0 && (
+              {/* The beams are drawn only when libp2p actually reports
+                  connected peers.
+
+                  They used to be driven by `peers.filter(p => p.reachable)`,
+                  which is HTTP reachability from GET /peers — a different fact
+                  entirely from gossip connectivity. On this node that produced
+                  three animated links to named peers directly above the line
+                  "0 connected · 0 in mesh": the picture asserted a live mesh
+                  while the numbers in the same section denied it. Measured:
+                  16 HTTP-reachable peers, connected_peers 0, mesh 0. */}
+              {p2p?.enabled && meshLinks > 0 && (
                 <div ref={gossipRef} className="relative py-4 mb-2">
                   <div className="flex items-center justify-between">
                     <div
@@ -521,25 +580,26 @@ export default function HomePage() {
                       node
                     </div>
                     <div className="flex flex-col gap-2.5">
-                      {gossipPeers.map((peer, i) => (
+                      {/* Unlabelled on purpose. /p2p/info reports how many peers
+                          are connected but not which, so naming them would mean
+                          borrowing identities from the HTTP peer list and
+                          claiming a libp2p link the API never asserted. */}
+                      {Array.from({ length: meshLinks }, (_, i) => (
                         <div
-                          key={peer.did}
+                          key={i}
                           ref={peerRefs[i]}
-                          title={peer.did}
-                          className="z-10 flex size-7 items-center justify-center rounded-full border border-border bg-surface text-[9px] text-muted"
-                        >
-                          {shortDid(peer.did).slice(0, 4)}
-                        </div>
+                          className="z-10 size-7 rounded-full border border-border bg-surface"
+                        />
                       ))}
                     </div>
                   </div>
-                  {gossipPeers.map((peer, i) => (
+                  {Array.from({ length: meshLinks }, (_, i) => (
                     <AnimatedBeam
-                      key={peer.did}
+                      key={i}
                       containerRef={gossipRef}
                       fromRef={selfRef}
                       toRef={peerRefs[i]}
-                      curvature={(i - (gossipPeers.length - 1) / 2) * 18}
+                      curvature={(i - (meshLinks - 1) / 2) * 18}
                       duration={4}
                       delay={i * 0.7}
                       pathColor="var(--color-border)"
@@ -564,6 +624,24 @@ export default function HomePage() {
                     {p2p.connected_peers} connected · {p2p.gossipsub_mesh_peers ?? 0} in mesh
                   </span>
                 )}
+
+                {/* Zero connected peers with the transport enabled is a normal
+                    state, not a missing figure: gossip arrives in bursts and
+                    the mesh is empty between them. Saying so stops an empty
+                    diagram reading as a broken section. */}
+                {p2p?.enabled && meshLinks === 0 && (
+                  <span>
+                    No peers connected over libp2p right now — the feed above is
+                    what has arrived so far.
+                  </span>
+                )}
+
+                {typeof reachablePeers === 'number' && (
+                  <span className="tabular">
+                    {reachablePeers} of {peers?.length ?? 0} known peers answer over HTTP
+                  </span>
+                )}
+
                 {p2p?.topics?.map(t => (
                   <code key={t} className="font-mono text-[11.5px] break-all">{t}</code>
                 ))}
