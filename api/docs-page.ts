@@ -157,6 +157,16 @@ function shellUnavailable(): Response {
   });
 }
 
+/**
+ * A line unique to the generated hub index.
+ *
+ * `fetchDocMarkdown` checks for it: when a document's static file is absent the
+ * subrequest can be rewritten back into this function and answered with the hub
+ * index at status 200, which would then be served as though it were the
+ * requested document.
+ */
+const HUB_MARKER = 'All guides are served as raw markdown at stable URLs';
+
 /** Markdown index served to text clients at the bare /docs route. */
 function hubMarkdown(origin: string): string {
   const lines = [
@@ -164,7 +174,7 @@ function hubMarkdown(origin: string): string {
     '',
     '> gitlawb is a decentralized git network where AI agents and humans collaborate as equals. Identity is an Ed25519 DID keypair; every push is signed and produces a verifiable ref-update certificate.',
     '',
-    'All guides are served as raw markdown at stable URLs — fetch these directly:',
+    `${HUB_MARKER} — fetch these directly:`,
     '',
   ];
   for (const [slug, meta] of Object.entries(DOCS)) {
@@ -185,7 +195,40 @@ function hubMarkdown(origin: string): string {
 
 const MARKDOWN_FETCH_TIMEOUT_MS = 3_500;
 
-async function fetchDocMarkdown(request: Request, slug: string): Promise<string | null> {
+/**
+ * Marks the subrequest this function makes for a document's markdown.
+ *
+ * vercel.json has no path that 404s: `/docs/:slug` rewrites here and `:slug`
+ * matches a segment containing a dot, and anything else falls to the `/(.*)`
+ * catch-all serving index.html. So when `/docs/<slug>.md` misses the
+ * filesystem, the subrequest below does not fail — it is rewritten back into
+ * this function, which answers 200 with the hub index (the subrequest's Accept
+ * is not html), and that would then be served to the client as the requested
+ * document, with `Content-Type: text/markdown` and an hour of CDN caching.
+ *
+ * A request carrying this header therefore means exactly one thing: the static
+ * file was not there, because a file that exists is served before rewrites are
+ * consulted. Answering 404 breaks the loop at the first hop.
+ */
+const INTERNAL_MARKDOWN_HEADER = 'x-gitlawb-doc-markdown';
+
+type MarkdownResult =
+  | { ok: true; markdown: string }
+  | { ok: false; reason: 'missing' | 'unavailable' };
+
+/**
+ * Whether a fetched body is a document rather than something a rewrite
+ * substituted. `fetchIndexHtml` guards its own fetch the same way, by testing
+ * the body instead of trusting the status.
+ */
+function isDocumentBody(text: string): boolean {
+  const head = text.slice(0, 500).trimStart();
+  if (/^<(!doctype|html\b|\?xml)/i.test(head)) return false; // the SPA shell
+  if (text.includes(HUB_MARKER)) return false; // this function's own hub index
+  return true;
+}
+
+async function fetchDocMarkdown(request: Request, slug: string): Promise<MarkdownResult> {
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(new Error('Markdown request timed out')),
@@ -195,14 +238,19 @@ async function fetchDocMarkdown(request: Request, slug: string): Promise<string 
   try {
     const response = await fetch(new URL(`/docs/${slug}.md`, request.url), {
       method: 'GET',
+      headers: { [INTERNAL_MARKDOWN_HEADER]: '1', Accept: 'text/markdown, text/plain' },
       cache: 'force-cache',
       redirect: 'follow',
       signal: controller.signal,
     });
-    if (!response.ok) return null;
-    return await response.text();
+    if (response.status === 404) return { ok: false, reason: 'missing' };
+    if (!response.ok) return { ok: false, reason: 'unavailable' };
+
+    const text = await response.text();
+    if (!isDocumentBody(text)) return { ok: false, reason: 'missing' };
+    return { ok: true, markdown: text };
   } catch {
-    return null;
+    return { ok: false, reason: 'unavailable' };
   } finally {
     clearTimeout(timeout);
   }
@@ -223,14 +271,37 @@ export async function GET(request: Request): Promise<Response> {
   const slug = docSlug(request);
   const origin = siteOrigin(request);
 
+  // The markdown subrequest was rewritten back into this function, which means
+  // the static file it asked for does not exist. Answer 404 rather than the hub
+  // index, which the caller would otherwise serve as the document itself.
+  if (request.headers.get(INTERNAL_MARKDOWN_HEADER) !== null) {
+    return new Response('Not found\n', {
+      status: 404,
+      headers: {
+        'Cache-Control': NO_CACHE,
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
+  }
+
   // Unknown slugs get the hub metadata; the SPA redirects them client-side.
   const known = slug !== null && slug !== '' && Object.hasOwn(DOCS, slug);
 
   if (!prefersHtml(request)) {
     if (!known) return markdownResponse(hubMarkdown(origin), { cacheControl: DOCS_CACHE });
 
-    const markdown = await fetchDocMarkdown(request, slug);
-    if (markdown !== null) return markdownResponse(markdown, { cacheControl: DOCS_CACHE });
+    const result = await fetchDocMarkdown(request, slug);
+    if (result.ok) return markdownResponse(result.markdown, { cacheControl: DOCS_CACHE });
+
+    // A listed slug whose file is absent is a broken deploy, not a passing
+    // outage, so it is not cached and does not claim to be temporary.
+    if (result.reason === 'missing') {
+      return markdownResponse(
+        `# Not found\n\nThere is no document at /docs/${slug}. The current guides are listed at ${origin}/docs\n`,
+        { status: 404, cacheControl: NO_CACHE },
+      );
+    }
     return markdownResponse(
       `This page is temporarily unavailable. Raw markdown lives at ${origin}/docs/${slug}.md\n`,
       { status: 502, cacheControl: NO_CACHE },

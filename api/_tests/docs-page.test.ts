@@ -24,24 +24,40 @@ beforeEach(() => {
   vi.stubEnv('PUBLIC_SITE_URL', '');
 });
 
-/** Serves index.html and public/docs/*.md the way the deployment would. */
-function stubStaticFetch(): ReturnType<typeof vi.fn> {
-  const fetchMock = vi.fn().mockImplementation((input: URL | RequestInfo) => {
+/**
+ * Serves index.html and public/docs/*.md the way the deployment does.
+ *
+ * The important detail is that **nothing 404s**. vercel.json rewrites
+ * `/docs/:slug` into this function — and `:slug` matches a segment containing
+ * a dot — while `/(.*)` catches everything else and serves index.html. A
+ * missing `public/docs/<slug>.md` therefore does not produce a 404: it is
+ * rewritten back into the handler. An earlier version of this stub returned
+ * 404 for absent files, which is why a real bug went unnoticed — the handler
+ * served the hub index as though it were the requested document.
+ */
+function stubStaticFetch(present: readonly string[] = ['agents']): ReturnType<typeof vi.fn> {
+  const fetchMock = vi.fn().mockImplementation(async (input: URL | RequestInfo, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input);
-    if (url.endsWith('/docs/agents.md')) {
-      return Promise.resolve(
-        new Response(AGENTS_MARKDOWN, {
+    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+
+    const docMatch = url.match(/\/docs\/([^/]+)\.md$/);
+    if (docMatch) {
+      if (present.includes(docMatch[1])) {
+        return new Response(AGENTS_MARKDOWN, {
           status: 200,
           headers: { 'Content-Type': 'text/markdown' },
-        }),
+        });
+      }
+      // Filesystem miss → vercel.json rewrites `/docs/<slug>.md` back into
+      // this same function with slug="<slug>.md".
+      const rewritten = new Request(
+        `https://preview.example/api/docs-page?${new URLSearchParams({ slug: `${docMatch[1]}.md` })}`,
+        { headers },
       );
+      return GET(rewritten);
     }
-    if (/\/docs\/[^/]+\.md$/.test(url)) {
-      return Promise.resolve(new Response('not found', { status: 404 }));
-    }
-    return Promise.resolve(
-      new Response(INDEX_HTML, { status: 200, headers: { 'Content-Type': 'text/html' } }),
-    );
+
+    return new Response(INDEX_HTML, { status: 200, headers: { 'Content-Type': 'text/html' } });
   });
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
@@ -193,5 +209,69 @@ describe('docs page markdown negotiation', () => {
     expect(response.status).toBe(502);
     expect(response.headers.get('content-type')).toBe('text/markdown; charset=utf-8');
     expect(body).toContain('https://preview.example/docs/agents.md');
+  });
+
+  it('never serves the hub index in place of a listed document', async () => {
+    // The file for "protocol" is absent, so the subrequest is rewritten back
+    // into this handler. Before the fix that answered 200 with the hub index,
+    // which was then served as the protocol document — wrong content, correct
+    // content-type, cached for an hour.
+    stubStaticFetch(['agents']);
+
+    const response = await GET(docsRequest('protocol', { accept: '*/*' }));
+    const body = await response.text();
+
+    expect(body).not.toContain('# gitlawb docs');
+    expect(body).not.toContain('All guides are served as raw markdown');
+    expect(response.status).toBe(404);
+  });
+
+  it('does not cache the response for an absent document', async () => {
+    stubStaticFetch(['agents']);
+
+    const response = await GET(docsRequest('node', { accept: '*/*' }));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toBe('private, no-store, max-age=0');
+  });
+
+  it('still serves a document whose file is present', async () => {
+    stubStaticFetch(['agents']);
+
+    const response = await GET(docsRequest('agents', { accept: '*/*' }));
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toBe(AGENTS_MARKDOWN);
+  });
+
+  it('rejects the internal markdown subrequest rather than answering it', async () => {
+    // Reaching the handler with this header means the static file was missing,
+    // because a file that exists is served before rewrites are consulted.
+    stubStaticFetch();
+
+    const response = await GET(
+      docsRequest('agents.md', { accept: '*/*', 'x-gitlawb-doc-markdown': '1' }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toContain('# gitlawb docs');
+  });
+
+  it('rejects an HTML shell served in place of a document', async () => {
+    // The other rewrite outcome: the `/(.*)` catch-all serves index.html, so
+    // the body is the SPA shell rather than markdown.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(INDEX_HTML, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+      ),
+    );
+
+    const response = await GET(docsRequest('agents', { accept: '*/*' }));
+    const body = await response.text();
+
+    expect(response.status).toBe(404);
+    expect(body).not.toContain('<div id="root">');
   });
 });
