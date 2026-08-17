@@ -54,7 +54,7 @@ export default function RepositoriesPage() {
   useListNav(listRef);
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
 
 
       <RepoHero
@@ -76,6 +76,7 @@ export default function RepositoriesPage() {
           onForkFilterChange={v => setParams({ fork: v === 'all' ? null : v })}
           searchScope={searchScope}
           loadedCount={repos?.length ?? 0}
+          filterScopedToPage={totalPages > 1}
         />
 
         {/* Owner filter chip */}
@@ -89,7 +90,7 @@ export default function RepositoriesPage() {
         )}
 
         {error ? (
-          <div className="border border-border py-16 text-center">
+          <div className="border-t border-border py-16 text-center">
             <p className="m-0 text-[13px] text-danger mb-4">failed to load repositories: {error}</p>
           </div>
         ) : (
@@ -99,7 +100,13 @@ export default function RepositoriesPage() {
                 repos={visibleRepos}
                 loading={loading}
                 skeletonCount={Math.min(perPage, 12)}
-                emptyMessage={search || forkFilter !== 'all' ? 'no repositories match' : 'no repositories yet'}
+                emptyMessage={
+                  forkFilter !== 'all' && totalPages > 1
+                    ? `no ${forkFilter} on this page`
+                    : search || forkFilter !== 'all'
+                      ? 'no repositories match'
+                      : 'no repositories yet'
+                }
               />
             </div>
             <RepoPagination

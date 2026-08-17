@@ -1,20 +1,6 @@
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-  PaginationEllipsis,
-  PaginationSummary,
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectPopover,
-  Menu,
-  MenuItem,
-} from '@heroui/react';
+import { Dropdown } from '../ui/Dropdown';
 import { PER_PAGE_OPTIONS } from '../../lib/constants';
+import { cn } from '../../lib/utils';
 
 interface RepoPaginationProps {
   page: number;
@@ -32,6 +18,7 @@ function range(start: number, end: number): number[] {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
+/** Page controls for a server-paginated list. */
 export function RepoPagination({
   page,
   totalPages,
@@ -51,72 +38,76 @@ export function RepoPagination({
         ? [1, 0, ...range(totalPages - 4, totalPages)]
         : [1, 0, page - 1, page, page + 1, 0, totalPages];
 
+  const step =
+    'text-[13px] px-2 py-1 rounded-[var(--radius)] transition-colors ' +
+    'disabled:opacity-30 disabled:cursor-not-allowed';
+
   return (
-    <nav className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-6 sm:mt-8">
-      <PaginationSummary className="text-[12px] tabular-nums text-muted">
-        {windowStart.toLocaleString()}–{windowEnd.toLocaleString()} of {totalCount.toLocaleString()} {noun}
-      </PaginationSummary>
+    <nav
+      aria-label="pagination"
+      className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-8 pt-4 border-t border-border"
+    >
+      <p className="m-0 text-[13px] tabular text-muted">
+        {windowStart.toLocaleString()}&ndash;{windowEnd.toLocaleString()}
+        <span className="text-subtle px-1.5">/</span>
+        {totalCount.toLocaleString()} {noun}
+      </p>
 
-      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-        <span className="text-[10px] font-medium tracking-[0.2em] uppercase text-muted">
-          per page
-        </span>
-        <Select
-          selectedKey={String(perPage)}
-          onSelectionChange={key => onPerPageChange(Number(key))}
-          variant="secondary"
-          className="min-w-[70px]"
-        >
-          <SelectTrigger className="h-7 text-[11px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectPopover>
-            <Menu>
-              {PER_PAGE_OPTIONS.map(n => (
-                <MenuItem key={n} id={String(n)}>{n}</MenuItem>
-              ))}
-            </Menu>
-          </SelectPopover>
-        </Select>
+      <div className="flex items-center gap-4 sm:gap-5 flex-wrap">
+        <Dropdown
+          label="Per page"
+          value={String(perPage)}
+          onChange={v => onPerPageChange(Number(v))}
+          options={PER_PAGE_OPTIONS.map(n => ({ value: String(n), label: String(n) }))}
+          align="end"
+        />
 
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                isDisabled={page <= 1}
-                onPress={() => onPageChange(page - 1)}
-                aria-label="previous page"
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            className={cn(step, 'text-muted hover:text-foreground')}
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            aria-label="previous page"
+          >
+            &larr;
+          </button>
+
+          {pages.map((p, i) =>
+            p === 0 ? (
+              <span key={`e${i}`} aria-hidden="true" className="text-[13px] text-subtle px-1">
+                &middot;&middot;&middot;
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                onClick={() => onPageChange(p)}
+                aria-current={p === page ? 'page' : undefined}
+                aria-label={`page ${p}`}
+                className={cn(
+                  'relative text-[13px] tabular px-2 py-1 rounded-[var(--radius)] transition-colors',
+                  p === page ? 'text-foreground' : 'text-muted hover:text-foreground',
+                )}
               >
-                prev
-              </PaginationPrevious>
-            </PaginationItem>
-            {pages.map((p, i) =>
-              p === 0 ? (
-                <PaginationItem key={`e${i}`}>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              ) : (
-                <PaginationItem key={p}>
-                  <PaginationLink
-                    isActive={p === page}
-                    onPress={() => onPageChange(p)}
-                  >
-                    {p}
-                  </PaginationLink>
-                </PaginationItem>
-              ),
-            )}
-            <PaginationItem>
-              <PaginationNext
-                isDisabled={page >= totalPages}
-                onPress={() => onPageChange(page + 1)}
-                aria-label="next page"
-              >
-                next
-              </PaginationNext>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+                {p}
+                {p === page && (
+                  <span aria-hidden="true" className="absolute inset-x-1 bottom-0 h-[2px] bg-accent" />
+                )}
+              </button>
+            ),
+          )}
+
+          <button
+            type="button"
+            className={cn(step, 'text-muted hover:text-foreground')}
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            aria-label="next page"
+          >
+            &rarr;
+          </button>
+        </div>
       </div>
     </nav>
   );
