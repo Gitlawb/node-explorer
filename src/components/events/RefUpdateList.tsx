@@ -1,79 +1,103 @@
-import { Circle } from 'lucide-react';
+import { GitBranch, Radio, Server } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import type { ApiRefUpdate } from '../../lib/api';
 import { parseEventRepo, shortRefName, shortSha, shortDid, timeAgo, isGossip } from '../../lib/api';
-import { MicroLabel } from '../ui/MicroLabel';
 import { Skeleton } from '../ui/Skeleton';
+import { AnimatedList } from '../ui/animated-list';
+import { MagicCard } from '../ui/magic-card';
 
-function RefUpdateRow({ event, index }: { event: ApiRefUpdate; index: number }) {
+/**
+ * A ref-update, as a feed card.
+ *
+ * The gossip feed is genuinely live — the page re-polls and new updates arrive
+ * while you watch — so it is built on Magic UI's AnimatedList, which is made
+ * for exactly that: items enter from the top and push the rest down, rather
+ * than the list silently re-rendering underneath the reader.
+ */
+function RefUpdateCard({ event }: { event: ApiRefUpdate }) {
   const repoRef = parseEventRepo(event.repo);
   const gossip = isGossip(event);
   const created = event.old_sha?.startsWith('0000000');
 
   return (
-    <li
-      className="grid grid-cols-[16px_minmax(0,1fr)_80px] md:grid-cols-[24px_minmax(0,1fr)_150px_120px_90px]
-        items-baseline gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3
-        border-b border-separator last:border-b-0 hover:bg-surface-secondary transition-colors
-        "
-      style={{ animationDelay: `${index * 16}ms` }}
+    <MagicCard
+      gradientSize={220}
+      gradientColor="var(--color-foreground)"
+      gradientOpacity={0.09}
+      gradientFrom="var(--color-foreground)"
+      gradientTo="var(--color-muted)"
+      className="w-full rounded-[10px] border border-border bg-surface"
     >
-      <span
-        aria-hidden="true"
-        className={cn('text-[8px] leading-none select-none self-start pt-[5px]', gossip ? 'text-accent' : 'text-muted')}
-        title={gossip ? 'received via gossip' : 'local push'}
-      >
-        <Circle size={7} fill="currentColor" />
-      </span>
+      <div className="flex items-start gap-3 p-3.5">
+        <span
+          className={cn(
+            'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border',
+            gossip
+              ? 'border-accent/40 bg-accent/10 text-accent'
+              : 'border-success/40 bg-success/10 text-success',
+          )}
+          title={gossip ? 'Received via gossip from a peer' : 'Received directly by this node'}
+        >
+          {gossip ? <Radio size={13} /> : <Server size={13} />}
+        </span>
 
-      {/* repo / ref */}
-      <span className="min-w-0 truncate text-[13px]">
-        {repoRef ? (
-          <Link
-            to={`/repos/${encodeURIComponent(repoRef.ownerDid)}/${encodeURIComponent(repoRef.name)}`}
-            className="font-bold text-foreground hover:text-accent transition-colors"
-          >
-            {repoRef.label}
-          </Link>
-        ) : (
-          <span className="font-bold text-foreground">{event.repo}</span>
-        )}
-        <span className="text-muted"> · {shortRefName(event.ref_name)}</span>
-      </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0 truncate text-[14px]">
+              {repoRef ? (
+                <Link
+                  to={`/repos/${encodeURIComponent(repoRef.ownerDid)}/${encodeURIComponent(repoRef.name)}`}
+                  className="font-semibold text-accent hover:underline"
+                >
+                  {repoRef.label}
+                </Link>
+              ) : (
+                <span className="font-semibold text-foreground">{event.repo}</span>
+              )}
+            </span>
+            <span className="shrink-0 text-[12px] text-muted tabular">
+              {timeAgo(event.timestamp)}
+            </span>
+          </div>
 
-      {/* sha transition */}
-      <span className="hidden md:block text-[12px] text-muted tabular-nums whitespace-nowrap">
-        {created ? (
-          <>new · {shortSha(event.new_sha)}</>
-        ) : (
-          <>{shortSha(event.old_sha)} → {shortSha(event.new_sha)}</>
-        )}
-      </span>
-
-      {/* pusher */}
-      <span className="hidden md:block text-[12px] text-muted truncate" title={event.pusher_did}>
-        {shortDid(event.pusher_did)}
-      </span>
-
-      {/* time */}
-      <span className="text-[11px] text-muted tabular-nums text-right whitespace-nowrap">
-        {timeAgo(event.timestamp)}
-      </span>
-    </li>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <GitBranch size={12} />
+              <span className="font-mono">{shortRefName(event.ref_name)}</span>
+            </span>
+            <span className="font-mono tabular">
+              {created ? (
+                <span className="text-accent">{shortSha(event.new_sha)}</span>
+              ) : (
+                <>
+                  {shortSha(event.old_sha)}
+                  <span className="px-1.5 text-subtle">&rarr;</span>
+                  <span className="text-accent">{shortSha(event.new_sha)}</span>
+                </>
+              )}
+            </span>
+            <span className="truncate font-mono" title={event.pusher_did}>
+              {shortDid(event.pusher_did)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </MagicCard>
   );
 }
 
-function RefUpdateRowSkeleton() {
+function RefUpdateCardSkeleton() {
   return (
-    <li className="grid grid-cols-[16px_minmax(0,1fr)_80px] md:grid-cols-[24px_minmax(0,1fr)_150px_120px_90px]
-      items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3 border-b border-separator last:border-b-0">
-      <span />
-      <Skeleton className="h-4 w-52 max-w-full" />
-      <Skeleton className="hidden md:block h-4 w-28" />
-      <Skeleton className="hidden md:block h-4 w-20" />
-      <Skeleton className="h-3 w-14 justify-self-end" />
-    </li>
+    <div className="w-full rounded-[10px] border border-border bg-surface p-3.5">
+      <div className="flex items-start gap-3">
+        <Skeleton className="size-7 shrink-0 rounded-full" />
+        <div className="flex-1">
+          <Skeleton className="h-4 w-52 max-w-full" />
+          <Skeleton className="mt-2 h-3 w-40" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -81,7 +105,6 @@ interface RefUpdateListProps {
   events: ApiRefUpdate[] | null;
   loading?: boolean;
   skeletonCount?: number;
-  /** Hide the md+ header strip (compact embeds, e.g. the dashboard). */
   header?: boolean;
   emptyMessage?: string;
 }
@@ -89,37 +112,28 @@ interface RefUpdateListProps {
 export function RefUpdateList({
   events,
   loading = false,
-  skeletonCount = 10,
-  header = true,
-  // The global feed only carries gossip from peers; a push to this node lands
-  // on the repo page, not here — don't promise otherwise.
-  emptyMessage = 'no gossip from peer nodes yet',
+  skeletonCount = 8,
+  // The global feed carries peer gossip only; local pushes surface on the repo
+  // page, not here — don't promise otherwise.
+  emptyMessage = 'No gossip from peer nodes yet',
 }: RefUpdateListProps) {
   return (
-    <div className={cn(
-      'transition-opacity duration-200',
-      loading && events !== null && 'opacity-40 pointer-events-none',
-    )}>
-      {header && (
-        <div className="hidden md:grid grid-cols-[24px_minmax(0,1fr)_150px_120px_90px] gap-x-4 px-6 h-10 items-center border-b border-border bg-surface">
-          <span />
-          <MicroLabel>repo · ref</MicroLabel>
-          <MicroLabel>commit</MicroLabel>
-          <MicroLabel>pusher</MicroLabel>
-          <MicroLabel className="text-right">when</MicroLabel>
-        </div>
+    <div
+      className={cn(
+        'transition-opacity duration-200',
+        loading && events !== null && 'opacity-40 pointer-events-none',
       )}
-
+    >
       {events === null ? (
-        <ul className="m-0 p-0 list-none" aria-busy="true" aria-label="loading events">
-          {Array.from({ length: skeletonCount }, (_, i) => <RefUpdateRowSkeleton key={i} />)}
-        </ul>
+        <div className="flex flex-col gap-2.5" aria-busy="true" aria-label="loading events">
+          {Array.from({ length: skeletonCount }, (_, i) => <RefUpdateCardSkeleton key={i} />)}
+        </div>
       ) : events.length === 0 ? (
-        <p className="m-0 py-16 text-center text-[13px] text-muted">{emptyMessage}</p>
+        <p className="m-0 py-16 text-center text-[14px] text-muted">{emptyMessage}</p>
       ) : (
-        <ul className="m-0 p-0 list-none">
-          {events.map((event, i) => <RefUpdateRow key={event.id} event={event} index={i} />)}
-        </ul>
+        <AnimatedList delay={220} className="gap-2.5">
+          {events.map(event => <RefUpdateCard key={event.id} event={event} />)}
+        </AnimatedList>
       )}
     </div>
   );

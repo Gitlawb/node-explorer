@@ -86,10 +86,10 @@ interface TaskListProps {
 export function TaskList({ tasks, loading = false, skeletonCount = 10, emptyMessage = 'no tasks match' }: TaskListProps) {
   return (
     <div className={cn(
-      'border border-border transition-opacity duration-200',
+      'border-t border-border transition-opacity duration-200',
       loading && tasks !== null && 'opacity-40 pointer-events-none',
     )}>
-      <div className="hidden md:grid grid-cols-[24px_minmax(0,1fr)_150px_150px_90px] gap-x-4 px-6 h-10 items-center border-b border-border bg-surface">
+      <div className="hidden md:grid grid-cols-[24px_minmax(0,1fr)_150px_150px_90px] gap-x-4 px-4 h-9 items-center border-b border-border">
         <span />
         <MicroLabel>task</MicroLabel>
         <MicroLabel>delegator</MicroLabel>

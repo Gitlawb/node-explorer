@@ -75,8 +75,8 @@ export function LocalPushPanel({ query }: { query: string }) {
   if (!debounced || results === null || results.length === 0) return null;
 
   return (
-    <div className="border border-border mb-4">
-      <div className="flex items-baseline gap-3 px-4 sm:px-6 h-10 border-b border-border bg-surface">
+    <div className="border-t border-border mb-4">
+      <div className="flex items-baseline gap-3 px-4 h-9 border-b border-border">
         <MicroLabel>local pushes</MicroLabel>
         <span className="text-[11px] text-muted">
           signed certificates from matching repos — these never appear in the gossip feed below
