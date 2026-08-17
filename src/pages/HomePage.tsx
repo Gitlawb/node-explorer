@@ -277,7 +277,16 @@ export default function HomePage() {
           {/* Main column */}
           <div className="min-w-0 flex flex-col gap-8">
 
-            <Section title="Latest ref-update">
+            {/* Both of these read /events/ref-updates, which carries only ref
+                updates gossiped in from peer nodes — a push this node received
+                directly is recorded as a per-repo certificate and never enters
+                the feed. Measured on a live node: every one of the 50 events
+                returned had from_peer set, the newest was two days old, and all
+                six repositories on the same page had been updated within the
+                hour. Headed "Latest ref-update" and "Recent activity" with no
+                qualifier, that reads as a node that has gone quiet. The scope is
+                now stated, in the same terms /events uses. */}
+            <Section title="Latest gossiped ref-update">
               {latest ? (
                 <LatestPush event={latest} />
               ) : loading ? (
@@ -293,13 +302,18 @@ export default function HomePage() {
             </Section>
 
             <Section
-              title="Recent activity"
+              title="Gossip from peer nodes"
               action={
                 <Link to="/events" className="text-[13px] text-accent hover:underline">
                   View all
                 </Link>
               }
             >
+              <p className="m-0 mb-3 text-[12.5px] text-muted">
+                Ref updates relayed here by other nodes. Pushes this node received
+                directly are recorded as signed certificates on each repository&rsquo;s
+                page, not in this feed.
+              </p>
               {/* No container. Rows are separated by hairlines and read as a
                   continuous feed rather than a panel dropped on the page. */}
               {distinctEvents === null && loading ? (
@@ -346,7 +360,9 @@ export default function HomePage() {
                     );
                   })}
                   {distinctEvents !== null && distinctEvents.length === 0 && (
-                    <li className="py-6 text-[13px] text-muted">No events recorded.</li>
+                    <li className="py-6 text-[13px] text-muted">
+                      No gossip from peer nodes yet.
+                    </li>
                   )}
                 </ol>
               )}
