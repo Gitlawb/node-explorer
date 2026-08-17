@@ -1,6 +1,5 @@
 import type { ReactNode, MouseEventHandler } from 'react';
 import { Link } from 'react-router-dom';
-import { Chip, Button } from '@heroui/react';
 import { cn } from '../../lib/utils';
 
 interface PillProps {
@@ -16,49 +15,55 @@ interface PillProps {
   'data-row-link'?: string;
 }
 
-export function Pill({ children, onClick, to, active, disabled, className, ...rest }: PillProps) {
-  const chip = (
-    <Chip
-      color={active ? 'accent' : 'default'}
-      variant={active ? 'primary' : 'tertiary'}
-      size="sm"
-      className={cn(
-        'uppercase tracking-[0.15em]',
-        'data-[disabled=true]:opacity-30 data-[disabled=true]:cursor-not-allowed',
-        onClick || to ? 'cursor-pointer' : '',
-        className,
-      )}
-      data-disabled={disabled || undefined}
-      {...rest}
-    >
-      {children}
-    </Chip>
+/** A small label holding one value. */
+const base =
+  'inline-flex items-center rounded-full border px-2 py-[2px] text-[12px] transition-colors';
+
+export function Pill({
+  children,
+  onClick,
+  to,
+  active,
+  disabled,
+  className,
+  ...rest
+}: PillProps) {
+  const tone = active
+    ? 'border-accent/50 text-accent bg-accent-subtle'
+    : 'border-border text-muted hover:text-foreground';
+
+  const cls = cn(
+    base,
+    tone,
+    disabled && 'opacity-40 cursor-not-allowed pointer-events-none',
+    className,
   );
 
   if (to) {
     return (
-      <Link
-        to={to}
-        className="inline-flex focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-[--radius]"
-        onClick={onClick}
-      >
-        {chip}
+      <Link to={to} className={cls} onClick={onClick} {...rest}>
+        {children}
       </Link>
     );
   }
 
   if (onClick) {
     return (
-      <Button
-        variant="tertiary"
-        isDisabled={disabled}
-        onPress={() => onClick(undefined as unknown as React.MouseEvent)}
-        className="inline-flex h-auto min-h-0 p-0 rounded-[--radius]"
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onClick}
+        className={cn(cls, 'cursor-pointer')}
+        {...rest}
       >
-        {chip}
-      </Button>
+        {children}
+      </button>
     );
   }
 
-  return chip;
+  return (
+    <span className={cls} {...rest}>
+      {children}
+    </span>
+  );
 }

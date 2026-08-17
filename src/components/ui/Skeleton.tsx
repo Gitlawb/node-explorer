@@ -1,1 +1,1 @@
-export { Skeleton } from '@heroui/react';
+export { Skeleton } from '../register/controls';
