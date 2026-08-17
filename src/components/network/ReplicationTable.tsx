@@ -21,8 +21,8 @@ export function ReplicationTable({ replication, labels, rowLimit = 12 }: Replica
   const short = (label: string) => label.split('.')[0];
 
   return (
-    <div className="border border-border">
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-10 border-b border-border bg-surface">
+    <div className="border-t border-border">
+      <div className="flex items-center justify-between gap-3 px-4 h-9 border-b border-border">
         <MicroLabel>replication — latest ref updates across nodes</MicroLabel>
         <span className="text-[11px] tabular-nums text-muted">
           {replication.fullyReplicatedCount}/{replication.totalTuples} in sync ·{' '}
@@ -36,7 +36,7 @@ export function ReplicationTable({ replication, labels, rowLimit = 12 }: Replica
         <div className="min-w-[640px]">
           {/* Header */}
           <div
-            className="grid gap-x-4 px-4 sm:px-6 h-10 items-center border-b border-border bg-surface"
+            className="grid gap-x-4 px-4 sm:px-4 h-9 items-center border-b border-border"
             style={{ gridTemplateColumns: `minmax(0,1fr) 90px 70px repeat(${labels.length}, 88px)` }}
           >
             <MicroLabel>repo · ref</MicroLabel>

@@ -1,6 +1,6 @@
 import { Circle } from 'lucide-react';
 import { useState } from 'react';
-import { Button, Link } from '@heroui/react';
+import { Button } from '../register/controls';
 import { cn } from '../../lib/utils';
 import type { ApiPeer } from '../../lib/api';
 import { pingPeer, peerHost, shortDid, timeAgo } from '../../lib/api';
@@ -74,25 +74,25 @@ function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
           {shortDid(peer.did)}
         </span>
         <CopyButton value={peer.did} label="did" />
-        <Link
+        <a
           href={peer.http_url}
           target="_blank"
           rel="noopener noreferrer"
           className="md:hidden text-[11px] text-muted truncate"
         >
           {peerHost(peer.http_url)}
-        </Link>
+        </a>
       </div>
 
       {/* Host */}
-      <Link
+      <a
         href={peer.http_url}
         target="_blank"
         rel="noopener noreferrer"
         className="hidden md:block text-[12px] text-muted truncate"
       >
         {peerHost(peer.http_url)} ↗
-      </Link>
+      </a>
 
       {/* Last seen */}
       <span className="hidden md:block text-[12px] text-muted tabular-nums whitespace-nowrap">
@@ -129,10 +129,10 @@ interface PeerListProps {
 export function PeerList({ peers, loading = false, skeletonCount = 10 }: PeerListProps) {
   return (
     <div className={cn(
-      'border border-border transition-opacity duration-200',
+      'border-t border-border transition-opacity duration-200',
       loading && peers !== null && 'opacity-40 pointer-events-none',
     )}>
-      <div className="hidden md:grid grid-cols-[24px_minmax(0,4fr)_minmax(0,3fr)_120px_90px] gap-x-4 px-6 h-10 items-center border-b border-border bg-surface">
+      <div className="hidden md:grid grid-cols-[24px_minmax(0,4fr)_minmax(0,3fr)_120px_90px] gap-x-4 px-4 h-9 items-center border-b border-border">
         <span />
         <MicroLabel>peer</MicroLabel>
         <MicroLabel>endpoint</MicroLabel>
