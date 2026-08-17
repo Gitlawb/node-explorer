@@ -1,14 +1,21 @@
 import { escapeHtml } from './_lib/repoSocial.js';
+import { markdownResponse, prefersHtml, NEGOTIATION_VARY } from './_lib/negotiation.js';
 
-// Serves /docs and /docs/:slug to crawlers with docs-specific social metadata
-// (og-docs.png card, per-section title/description) by swapping the
-// marker-delimited block in the built index.html — same mechanism as
-// api/repo-page.ts. The shell-fetch/inject helpers are intentionally
-// duplicated from repo-page rather than shared: repo-page is verified in
-// production and stays untouched.
+// Serves /docs and /docs/:slug. Browsers and social/search crawlers get the
+// SPA shell with docs-specific social metadata (og-docs.png card, per-section
+// title/description) swapped into the marker-delimited block of the built
+// index.html — same mechanism as api/repo-page.ts. The shell-fetch/inject
+// helpers are intentionally duplicated from repo-page rather than shared:
+// repo-page is verified in production and stays untouched.
 //
-// Raw markdown is unaffected: the filesystem (public/docs/*.md) is served
-// before rewrites, so only extensionless page routes reach this function.
+// Clients that don't advertise text/html (curl, AI agents, scripts) get raw
+// markdown instead: the slug's public/docs/*.md file, or a generated index
+// for the hub — the built shell is an empty <div id="root"> to anything that
+// doesn't run JS.
+//
+// Raw markdown URLs are unaffected: the filesystem (public/docs/*.md) is
+// served before rewrites, so only extensionless page routes reach this
+// function.
 
 const SITE_NAME = 'gitlawb explorer';
 const IMAGE_ALT = 'gitlawb docs — guides for agents, humans, and node operators';
@@ -134,6 +141,7 @@ function htmlResponse(html: string, init: { status?: number; cacheControl: strin
       'Cache-Control': init.cacheControl,
       'Content-Type': 'text/html; charset=utf-8',
       'X-Content-Type-Options': 'nosniff',
+      Vary: NEGOTIATION_VARY,
     },
   });
 }
@@ -147,6 +155,57 @@ function shellUnavailable(): Response {
       'X-Content-Type-Options': 'nosniff',
     },
   });
+}
+
+/** Markdown index served to text clients at the bare /docs route. */
+function hubMarkdown(origin: string): string {
+  const lines = [
+    '# gitlawb docs',
+    '',
+    '> gitlawb is a decentralized git network where AI agents and humans collaborate as equals. Identity is an Ed25519 DID keypair; every push is signed and produces a verifiable ref-update certificate.',
+    '',
+    'All guides are served as raw markdown at stable URLs — fetch these directly:',
+    '',
+  ];
+  for (const [slug, meta] of Object.entries(DOCS)) {
+    const label = meta.title.replace(` · docs · ${SITE_NAME}`, '');
+    lines.push(`- ${origin}/docs/${slug}.md — ${label}: ${meta.description}`);
+  }
+  lines.push(
+    '',
+    `- ${origin}/skill.md — packaged agent skill: full CLI reference, MCP server setup, workflows, and edge cases`,
+    `- ${origin}/llms.txt — machine-readable index of everything on this site`,
+    '',
+    `Live network explorer (repos, agents, events): ${origin}/`,
+    `Node API: https://node.gitlawb.com/api/v1 (e.g. /repos, /repos/{owner}/{repo}/events, /repos/{owner}/{repo}/certs)`,
+    '',
+  );
+  return lines.join('\n');
+}
+
+const MARKDOWN_FETCH_TIMEOUT_MS = 3_500;
+
+async function fetchDocMarkdown(request: Request, slug: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(new Error('Markdown request timed out')),
+    MARKDOWN_FETCH_TIMEOUT_MS,
+  );
+
+  try {
+    const response = await fetch(new URL(`/docs/${slug}.md`, request.url), {
+      method: 'GET',
+      cache: 'force-cache',
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    return await response.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function docSlug(request: Request): string | null {
@@ -164,11 +223,23 @@ export async function GET(request: Request): Promise<Response> {
   const slug = docSlug(request);
   const origin = siteOrigin(request);
 
+  // Unknown slugs get the hub metadata; the SPA redirects them client-side.
+  const known = slug !== null && slug !== '' && Object.hasOwn(DOCS, slug);
+
+  if (!prefersHtml(request)) {
+    if (!known) return markdownResponse(hubMarkdown(origin), { cacheControl: DOCS_CACHE });
+
+    const markdown = await fetchDocMarkdown(request, slug);
+    if (markdown !== null) return markdownResponse(markdown, { cacheControl: DOCS_CACHE });
+    return markdownResponse(
+      `This page is temporarily unavailable. Raw markdown lives at ${origin}/docs/${slug}.md\n`,
+      { status: 502, cacheControl: NO_CACHE },
+    );
+  }
+
   const indexHtml = await fetchIndexHtml(request);
   if (!indexHtml) return shellUnavailable();
 
-  // Unknown slugs get the hub metadata; the SPA redirects them client-side.
-  const known = slug !== null && slug !== '' && Object.hasOwn(DOCS, slug);
   const meta = known ? DOCS[slug] : HUB;
   const canonicalPath = known ? `/docs/${slug}` : '/docs';
 

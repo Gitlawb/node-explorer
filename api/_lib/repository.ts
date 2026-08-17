@@ -24,8 +24,81 @@ export type RepositoryFetchResult =
       upstreamStatus?: number;
     };
 
+/** One row of the per-repo events feed (local signed certs + gossip). */
+export interface ApiRepositoryEvent {
+  type: string;
+  id: string;
+  ref_name: string;
+  old_sha: string;
+  new_sha: string;
+  pusher_did: string;
+  timestamp: string;
+  source: string;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function isApiRepositoryEvent(value: unknown): value is ApiRepositoryEvent {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.type === 'string'
+    && typeof value.id === 'string'
+    && typeof value.ref_name === 'string'
+    && typeof value.old_sha === 'string'
+    && typeof value.new_sha === 'string'
+    && typeof value.pusher_did === 'string'
+    && typeof value.timestamp === 'string'
+    && typeof value.source === 'string'
+  );
+}
+
+/**
+ * Fetches the repository's recent events (signed push certificates + gossip).
+ * Best-effort: any failure returns null so callers can render without the
+ * events section rather than failing the whole response.
+ */
+export async function fetchRepositoryEvents(
+  owner: string,
+  name: string,
+  limit: number,
+  signal?: AbortSignal,
+): Promise<ApiRepositoryEvent[] | null> {
+  const controller = new AbortController();
+
+  const abortFromCaller = () => controller.abort(signal?.reason);
+  if (signal?.aborted) abortFromCaller();
+  else signal?.addEventListener('abort', abortFromCaller, { once: true });
+
+  const timeout = setTimeout(
+    () => controller.abort(new Error('Repository events request timed out')),
+    REPOSITORY_FETCH_TIMEOUT_MS,
+  );
+
+  const eventsUrl = new URL(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/events?limit=${limit}`,
+    REPOSITORY_API_ORIGIN,
+  );
+
+  try {
+    const response = await fetch(eventsUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+
+    const data: unknown = await response.json();
+    if (!isRecord(data) || !Array.isArray(data.events)) return null;
+    return data.events.filter(isApiRepositoryEvent);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', abortFromCaller);
+  }
 }
 
 function isApiRepository(value: unknown): value is ApiRepository {

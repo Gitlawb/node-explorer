@@ -1,5 +1,8 @@
-import { buildRepoSocialModel, escapeHtml } from './_lib/repoSocial.js';
-import { fetchRepository } from './_lib/repository.js';
+import { buildRepoSocialModel, cleanSocialText, escapeHtml } from './_lib/repoSocial.js';
+import type { RepoSocialModel } from './_lib/repoSocial.js';
+import { fetchRepository, fetchRepositoryEvents } from './_lib/repository.js';
+import type { ApiRepositoryEvent } from './_lib/repository.js';
+import { markdownResponse, prefersHtml, NEGOTIATION_VARY } from './_lib/negotiation.js';
 
 const GENERIC_TITLE = 'gitlawb explorer';
 const GENERIC_DESCRIPTION =
@@ -177,10 +180,81 @@ function htmlResponse(
     'Cache-Control': init.cacheControl,
     'Content-Type': 'text/html; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
+    Vary: NEGOTIATION_VARY,
   });
   if (init.noIndex) headers.set('X-Robots-Tag', 'noindex, noarchive');
 
   return new Response(html, { status: init.status ?? 200, headers });
+}
+
+/** Markdown summary served to text clients (agents, curl) for a public repo. */
+function repoMarkdown(
+  model: RepoSocialModel,
+  events: ApiRepositoryEvent[] | null,
+  origin: string,
+): string {
+  const ownerKey = model.owner.canonicalSegment;
+  // Colons are path-safe and the node API accepts the did:key form verbatim;
+  // keep it readable so agents can copy the URLs directly.
+  const apiBase = `https://node.gitlawb.com/api/v1/repos/${model.owner.did}/${encodeURIComponent(model.canonicalName)}`;
+
+  const lines = [
+    `# ${ownerKey}/${model.canonicalName}`,
+    '',
+    model.description,
+    '',
+    `- owner DID: ${model.owner.did}`,
+    `- visibility: ${model.visibility}${model.isFork ? ' · fork' : ''}`,
+    `- default branch: ${model.branch}`,
+    `- stars: ${model.stars}`,
+    `- created: ${model.createdAt}`,
+    `- updated: ${model.updatedAt}`,
+    '',
+    '## Clone',
+    '',
+    '```sh',
+    `git clone "gitlawb://${ownerKey}/${model.canonicalName}"`,
+    '```',
+    '',
+    'Requires `gl` + the `git-remote-gitlawb` helper (`npm install -g @gitlawb/gl`).',
+    `Agent guide: ${origin}/docs/agents.md`,
+    '',
+  ];
+
+  const pushes = (events ?? []).filter(e => e.source === 'local').slice(0, 5);
+  if (pushes.length > 0) {
+    lines.push('## Recent signed pushes', '');
+    for (const event of pushes) {
+      const ref = cleanSocialText(event.ref_name, 120);
+      const oldSha = cleanSocialText(event.old_sha, 40);
+      const newSha = cleanSocialText(event.new_sha, 40);
+      const created = oldSha.startsWith('0000000');
+      const transition = created ? `new → ${newSha}` : `${oldSha.slice(0, 8)} → ${newSha}`;
+      lines.push(
+        `- ${ref} · ${transition}`,
+        `  cert ${cleanSocialText(event.id, 80)} · pusher ${cleanSocialText(event.pusher_did, 256)} · ${cleanSocialText(event.timestamp, 80)}`,
+      );
+    }
+    lines.push(
+      '',
+      `Verify a push: \`gl cert show ${model.canonicalName} <cert-id> --verify\``,
+      '',
+    );
+  }
+
+  lines.push(
+    '## Raw JSON',
+    '',
+    `- repo:    ${apiBase}`,
+    `- events:  ${apiBase}/events`,
+    `- certs:   ${apiBase}/certs`,
+    `- commits: ${apiBase}/commits`,
+    '',
+    `Browser view: ${new URL(model.canonicalPath, origin).toString()}`,
+    '',
+  );
+
+  return lines.join('\n');
 }
 
 function shellUnavailable(): Response {
@@ -197,6 +271,42 @@ function shellUnavailable(): Response {
 export async function GET(request: Request): Promise<Response> {
   const params = repositoryParams(request);
   const origin = siteOrigin(request);
+
+  // Text clients (agents, curl) get a markdown summary instead of the SPA
+  // shell, which is an empty <div id="root"> without JavaScript. Status and
+  // cache semantics mirror the HTML path below, including never interpolating
+  // private repository data.
+  if (!prefersHtml(request)) {
+    if (!params) {
+      return markdownResponse('Bad request: expected /repos/{owner}/{name}.\n', {
+        status: 400,
+        cacheControl: NO_CACHE,
+      });
+    }
+
+    const [repositoryResult, events] = await Promise.all([
+      fetchRepository(params.owner, params.name, request.signal),
+      fetchRepositoryEvents(params.owner, params.name, 20, request.signal),
+    ]);
+
+    if (repositoryResult.status === 'ok' && repositoryResult.repository.is_public) {
+      const model = buildRepoSocialModel(repositoryResult.repository);
+      return markdownResponse(repoMarkdown(model, events, origin), {
+        cacheControl: SUCCESS_CACHE,
+      });
+    }
+    if (repositoryResult.status === 'not_found') {
+      return markdownResponse('Repository not found on this node.\n', {
+        status: 404,
+        cacheControl: NOT_FOUND_CACHE,
+      });
+    }
+    return markdownResponse(
+      `This repository page is unavailable. Browse the network at ${origin}/\n`,
+      { cacheControl: NO_CACHE },
+    );
+  }
+
   if (!params) {
     const indexHtml = await fetchIndexHtml(request);
     if (!indexHtml) return shellUnavailable();

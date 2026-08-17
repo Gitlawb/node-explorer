@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchRepository, type ApiRepository } from '../_lib/repository.js';
+import {
+  fetchRepository,
+  fetchRepositoryEvents,
+  type ApiRepository,
+  type ApiRepositoryEvent,
+} from '../_lib/repository.js';
 import { GET } from '../repo-page.js';
 
 vi.mock('../_lib/repository.js', () => ({
   fetchRepository: vi.fn(),
+  fetchRepositoryEvents: vi.fn(),
 }));
 
 const INDEX_HTML = `<!doctype html>
@@ -34,10 +40,26 @@ const REPOSITORY: ApiRepository = {
   forked_from: null,
 };
 
+const PUSH_EVENT: ApiRepositoryEvent = {
+  type: 'local_cert',
+  id: 'cert-abc-123',
+  ref_name: 'refs/heads/main',
+  old_sha: '0000000000000000000000000000000000000000',
+  new_sha: '47ce98c58e417791027c6bb193dc2b72d0839a7a',
+  pusher_did: 'did:key:z6Pusher',
+  timestamp: '2026-08-17T02:30:50Z',
+  source: 'local',
+};
+
+const BROWSER_ACCEPT =
+  'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+
 const fetchRepositoryMock = vi.mocked(fetchRepository);
+const fetchRepositoryEventsMock = vi.mocked(fetchRepositoryEvents);
 
 beforeEach(() => {
   vi.stubEnv('PUBLIC_SITE_URL', '');
+  fetchRepositoryEventsMock.mockResolvedValue(null);
 });
 
 function stubIndexHtml(): ReturnType<typeof vi.fn> {
@@ -48,9 +70,12 @@ function stubIndexHtml(): ReturnType<typeof vi.fn> {
   return fetchMock;
 }
 
-function repositoryRequest(name = 'demo'): Request {
+function repositoryRequest(
+  name = 'demo',
+  headers: Record<string, string> = { accept: BROWSER_ACCEPT },
+): Request {
   const search = new URLSearchParams({ owner: 'z6Owner', name });
-  return new Request(`https://preview.example/api/repo-page?${search}`);
+  return new Request(`https://preview.example/api/repo-page?${search}`, { headers });
 }
 
 afterEach(() => {
@@ -159,5 +184,83 @@ describe('repository page HTML shell', () => {
     expect(response.headers.get('cache-control')).toBe('public, max-age=0, s-maxage=30');
     expect(response.headers.get('x-robots-tag')).toBe('noindex, noarchive');
     expect(html).toContain('<div id="root"></div>');
+  });
+});
+
+describe('repository page markdown negotiation', () => {
+  const CURL = { accept: '*/*', 'user-agent': 'curl/8.7.1' };
+
+  it('serves a markdown summary with clone URL and signed pushes to text clients', async () => {
+    stubIndexHtml();
+    fetchRepositoryMock.mockResolvedValue({ status: 'ok', repository: REPOSITORY });
+    fetchRepositoryEventsMock.mockResolvedValue([PUSH_EVENT]);
+
+    const response = await GET(repositoryRequest('demo', CURL));
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('text/markdown; charset=utf-8');
+    expect(response.headers.get('vary')).toBe('Accept, User-Agent');
+    expect(response.headers.get('cache-control')).toBe(
+      'public, max-age=0, s-maxage=300, stale-while-revalidate=3600',
+    );
+    expect(body).toContain('# z6Owner/demo');
+    expect(body).toContain('git clone "gitlawb://z6Owner/demo"');
+    expect(body).toContain('owner DID: did:key:z6Owner');
+    expect(body).toContain('cert cert-abc-123');
+    expect(body).toContain('pusher did:key:z6Pusher');
+    expect(body).toContain('gl cert show demo <cert-id> --verify');
+    expect(body).toContain('https://node.gitlawb.com/api/v1/repos/did:key:z6Owner/demo/events');
+    expect(body).toContain('https://preview.example/docs/agents.md');
+    expect(body).not.toContain('<div id="root">');
+  });
+
+  it('omits the pushes section when events are unavailable', async () => {
+    stubIndexHtml();
+    fetchRepositoryMock.mockResolvedValue({ status: 'ok', repository: REPOSITORY });
+    fetchRepositoryEventsMock.mockResolvedValue(null);
+
+    const response = await GET(repositoryRequest('demo', CURL));
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('# z6Owner/demo');
+    expect(body).not.toContain('Recent signed pushes');
+    expect(body).toContain('https://node.gitlawb.com/api/v1/repos/did:key:z6Owner/demo/certs');
+  });
+
+  it('returns a markdown 404 for a missing repository', async () => {
+    stubIndexHtml();
+    fetchRepositoryMock.mockResolvedValue({ status: 'not_found' });
+
+    const response = await GET(repositoryRequest('missing', CURL));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('content-type')).toBe('text/markdown; charset=utf-8');
+    expect(response.headers.get('cache-control')).toBe('public, max-age=0, s-maxage=30');
+    expect(await response.text()).toContain('not found');
+  });
+
+  it('never places private repository data in the markdown response', async () => {
+    stubIndexHtml();
+    fetchRepositoryMock.mockResolvedValue({
+      status: 'ok',
+      repository: {
+        ...REPOSITORY,
+        name: 'secret-name',
+        description: 'extremely secret description',
+        is_public: false,
+      },
+    });
+    fetchRepositoryEventsMock.mockResolvedValue([PUSH_EVENT]);
+
+    const response = await GET(repositoryRequest('secret-name', CURL));
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store, max-age=0');
+    expect(body).not.toContain('secret-name');
+    expect(body).not.toContain('extremely secret description');
+    expect(body).not.toContain('cert-abc-123');
   });
 });
