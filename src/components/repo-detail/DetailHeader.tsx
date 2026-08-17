@@ -1,64 +1,103 @@
 import type { Repository } from '../../types/repo';
 import { shortDid, truncateDid } from '../../lib/api';
 import { CopyButton } from '../ui/CopyButton';
-import { Pill } from '../ui/Pill';
-import { MicroLabel } from '../ui/MicroLabel';
+import { Seal } from '../register/primitives';
+import { DotPattern } from '../ui/dot-pattern';
+import { AuroraText } from '../ui/aurora-text';
+import { GitFork, Star, Clock } from 'lucide-react';
+
+/* Aurora ramp, read from theme tokens rather than fixed hexes: this text is
+   painted through background-clip with a transparent colour, so a hardcoded
+   white ramp is invisible on the light theme's white ground. */
+const AURORA = [
+  'var(--ramp-1)',
+  'var(--ramp-2)',
+  'var(--ramp-3)',
+  'var(--ramp-4)',
+];
 
 interface DetailHeaderProps {
   repo: Repository;
 }
 
+/**
+ * The repository header.
+ *
+ * Carries the showcase language — patterned ground, the repository name
+ * accented — while the facts underneath stay dense and scannable.
+ *
+ * Fields holding this node's default value (public, `main`) are not printed:
+ * effectively every repository here is both, so showing them on every page
+ * spends the slot beside the name on nothing and trains the reader to skip the
+ * place an exception would appear.
+ */
 export function DetailHeader({ repo }: DetailHeaderProps) {
-  // repo.owner is already the full DID (did:key:z6Mk…)
   const fullDid = repo.owner;
-  const truncatedDid = truncateDid(fullDid);
-  const didSplitAt = truncatedDid.lastIndexOf(':') + 1;
+  const offBranch = repo.branch && repo.branch !== 'main' && repo.branch !== 'master';
+  const restricted = repo.visibility !== 'public';
 
   return (
-    <div className="min-w-0">
-      {/* Title */}
-      <h1 className="text-[24px] sm:text-[32px] lg:text-[40px] font-bold leading-tight mb-4 break-words">
-        <span className="text-muted">{shortDid(repo.owner)}/</span>
-        <span className="text-foreground">{repo.name}</span>
-      </h1>
+    <div className="relative overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-6 pb-6">
+      <DotPattern
+        width={24}
+        height={24}
+        cr={1}
+        className="absolute inset-0 h-full w-full fill-border/50
+          [mask-image:radial-gradient(380px_circle_at_10%_0%,white,transparent)]"
+      />
 
-      {/* Badges */}
-      <div className="flex items-center gap-1.5 mb-5 flex-wrap">
-        <Pill>{repo.branch}</Pill>
-        <Pill>{repo.visibility}</Pill>
-        <Pill>{repo.stars === 1 ? '1 star' : `${repo.stars} stars`}</Pill>
-        {repo.isMirror && <Pill>fork</Pill>}
-      </div>
+      <div className="relative min-w-0">
+        <h1 className="m-0 text-[26px] sm:text-[34px] font-semibold tracking-tight leading-tight break-words">
+          <span className="text-muted font-normal">{shortDid(repo.owner)}/</span>
+          <AuroraText speed={1.4} colors={AURORA}>{repo.name}</AuroraText>
+        </h1>
 
-      {/* Description */}
-      {repo.description && (
-        <p className="m-0 text-[13px] sm:text-[14px] leading-[1.75] mb-6 sm:mb-7 max-w-[560px] text-muted">
-          {repo.description}
-        </p>
-      )}
+        {(offBranch || restricted || repo.isMirror) && (
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            {restricted && <Seal label={repo.visibility} tone="attention" />}
+            {offBranch && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-[2px] text-[12px] text-muted">
+                default: {repo.branch}
+              </span>
+            )}
+            {repo.isMirror && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-[2px] text-[12px] text-muted">
+                <GitFork size={11} />
+                mirrored from a peer
+              </span>
+            )}
+          </div>
+        )}
 
-      {/* Owner/dates panel */}
-      <div className="border border-border">
-        {/* Owner row — middle-truncated for display, copy yields the full DID */}
-        <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-separator">
-          <MicroLabel className="w-[64px] flex-shrink-0">owner</MicroLabel>
-          <span title={fullDid} className="text-[11px] sm:text-[12.5px] flex-1 truncate min-w-0 text-foreground">
-            <span className="text-muted">{truncatedDid.slice(0, didSplitAt)}</span>
-            {truncatedDid.slice(didSplitAt)}
+        {repo.description && (
+          <p className="m-0 mt-3 text-[15px] leading-relaxed max-w-[72ch] text-muted">
+            {repo.description}
+          </p>
+        )}
+
+        <div className="mt-4 flex items-center gap-x-5 gap-y-2 flex-wrap text-[13px] text-muted">
+          {repo.stars > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <Star size={13} className="text-attention" />
+              <span className="text-foreground font-medium tabular">{repo.stars}</span>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5">
+            <Clock size={13} />
+            Updated <span className="text-foreground">{repo.updatedAt}</span>
           </span>
-          <CopyButton value={fullDid} label="copy" />
-        </div>
-
-        {/* Dates row */}
-        <div className="flex flex-wrap items-center gap-4 sm:gap-8 px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center gap-3">
-            <MicroLabel className="w-[64px] flex-shrink-0">updated</MicroLabel>
-            <span className="text-[12.5px] text-foreground tabular-nums">{repo.updatedAt}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <MicroLabel className="flex-shrink-0">created</MicroLabel>
-            <span className="text-[12.5px] text-foreground tabular-nums">{repo.createdAt}</span>
-          </div>
+          <span>
+            Created <span className="text-foreground">{repo.createdAt}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 min-w-0">
+            <code
+              title={fullDid}
+              className="font-mono text-[12px] truncate max-w-[22ch] sm:max-w-none"
+            >
+              {truncateDid(fullDid)}
+            </code>
+            <CopyButton value={fullDid} label="owner did" />
+          </span>
         </div>
       </div>
     </div>

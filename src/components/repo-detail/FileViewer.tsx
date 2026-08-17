@@ -6,7 +6,7 @@ import { extractTocHeadings } from '../../lib/toc';
 import { useShortcut } from '../../hooks/useShortcuts';
 import { TocRail } from './TocRail';
 import { CopyButton } from '../ui/CopyButton';
-import { Button, Link } from '@heroui/react';
+import { Button } from '../register/controls';
 import { Pill } from '../ui/Pill';
 import { MicroLabel } from '../ui/MicroLabel';
 import { Skeleton } from '../ui/Skeleton';
@@ -43,17 +43,17 @@ function RawLink({ href, children, 'aria-label': ariaLabel }: {
   'aria-label'?: string;
 }) {
   return (
-    <Link
+    <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={ariaLabel}
-      className="inline-flex items-center h-7 px-2.5 text-[10px] font-medium uppercase tracking-[0.15em]
-        border border-border rounded-[--radius] text-muted select-none flex-shrink-0
+      className="inline-flex items-center h-7 px-2.5 text-[12px] font-medium
+        border border-border rounded-[var(--radius)] text-muted select-none flex-shrink-0
         hover:border-muted hover:text-foreground transition-colors"
     >
       {children}
-    </Link>
+    </a>
   );
 }
 
@@ -144,7 +144,7 @@ export function FileViewer({
           variant="tertiary"
           size="sm"
           onPress={onBack}
-          className="text-[10px] font-medium tracking-[0.2em] uppercase h-auto min-h-0 px-1"
+          className="text-[12px] font-medium h-auto min-h-0 px-1"
         >
           ← back
         </Button>

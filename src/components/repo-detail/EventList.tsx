@@ -4,7 +4,7 @@ import { Pill } from '../ui/Pill';
 
 export function EventList({ items }: { items: ApiRepoEvent[] }) {
   return (
-    <ul className="m-0 p-0 list-none border border-border">
+    <ul className="m-0 p-0 list-none border-t border-border">
       {items.map(event => (
         <li
           key={event.id}

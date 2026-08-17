@@ -1,4 +1,4 @@
-import { Table } from '@heroui/react';
+import { Table } from '../register/controls';
 import { Folder, FolderOpen } from 'lucide-react';
 import type { RepoFile } from '../../types/repo';
 import { getFileIcon } from '../../lib/fileIcons';
@@ -60,10 +60,10 @@ export function FileList({ files, onClickEntry }: FileListProps) {
         <Table.ScrollContainer>
           <Table.Content aria-label="Files">
             <Table.Header>
-              <Table.Column className="text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6">
+              <Table.Column className="text-[12px] font-semibold text-muted h-9 px-4">
                 Name
               </Table.Column>
-              <Table.Column className="text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6 text-right w-20 sm:w-24">
+              <Table.Column className="text-[12px] font-semibold text-muted h-9 px-4 text-right w-20 sm:w-24">
                 Size
               </Table.Column>
             </Table.Header>

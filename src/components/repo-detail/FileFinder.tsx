@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
-import { Input, Button } from '@heroui/react';
+import { Input, Button } from '../register/controls';
 import type { Repository } from '../../types/repo';
 import { getTreeIndex, subscribeTreeIndex, ensureTreeIndex, MAX_INDEX_FILES } from '../../lib/treeIndex';
 import { fuzzyFilter } from '../../lib/fuzzy';

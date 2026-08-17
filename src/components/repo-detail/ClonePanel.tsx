@@ -1,37 +1,61 @@
-import { Button } from '@heroui/react';
+import { Button } from '../register/controls';
 import { CopyButton } from '../ui/CopyButton';
-import { MicroLabel } from '../ui/MicroLabel';
+import { Section } from '../register/primitives';
+import { MagicCard } from '../ui/magic-card';
 
 interface ClonePanelProps {
+  /** The node's https clone URL — plain git handles this one. */
   cloneUrl: string;
+  /** Canonical gitlawb:// remote, when the owner key and name are known. */
+  gitlawbUrl?: string;
   onNavigate: (tab: string) => void;
 }
 
-export function ClonePanel({ cloneUrl, onNavigate }: ClonePanelProps) {
-  const cloneCommand = `git clone ${cloneUrl}`;
+/** Sidebar clone block. A section, not a card — it holds no list of rows. */
+export function ClonePanel({ cloneUrl, gitlawbUrl, onNavigate }: ClonePanelProps) {
+  const primary = gitlawbUrl ?? cloneUrl;
+  const command = gitlawbUrl ? `git clone "${gitlawbUrl}"` : `git clone ${cloneUrl}`;
 
   return (
-    <div className="space-y-3">
-      {/* Clone panel */}
-      <div className="border border-border p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <MicroLabel className="mt-px">clone command</MicroLabel>
-          <CopyButton value={cloneCommand} label="copy" />
-        </div>
-        <code className="block text-[11px] sm:text-[12.5px] break-all leading-[1.9] text-foreground bg-surface border border-separator px-3 py-2">
-          <span className="text-muted select-none">$ </span>{cloneCommand}
+    <Section
+      title="Clone"
+      action={<CopyButton value={command} label="clone command" />}
+    >
+      {/* One card, in the sidebar only — a single pointer-tracked surface is
+          affordable here in a way fifty list rows are not. */}
+      <MagicCard
+        gradientSize={160}
+        gradientColor="var(--color-foreground)"
+        gradientOpacity={0.1}
+        gradientFrom="var(--color-foreground)"
+        gradientTo="var(--color-muted)"
+        className="rounded-[var(--radius)] border border-separator bg-canvas-inset"
+      >
+        <code className="block font-mono text-[12px] break-all leading-relaxed text-foreground px-2.5 py-2">
+          git clone {gitlawbUrl ? `"${primary}"` : primary}
         </code>
-      </div>
+      </MagicCard>
 
-      {/* Action buttons */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {gitlawbUrl && (
+        <p className="m-0 mt-2 text-[12px] leading-relaxed text-muted">
+          The <code className="font-mono">gitlawb://</code> scheme requires the{' '}
+          <code className="font-mono">git-remote-gitlawb</code> helper. Plain{' '}
+          <code className="font-mono">git</code> can clone the same repository over{' '}
+          <a href={cloneUrl} target="_blank" rel="noopener" className="text-accent hover:underline">
+            https
+          </a>
+          .
+        </p>
+      )}
+
+      <div className="flex gap-2 mt-3">
         <Button fullWidth onPress={() => onNavigate('code')}>
-          browse code →
+          Browse code
         </Button>
-        <Button fullWidth variant="secondary" onPress={() => onNavigate('pulls')}>
-          pull requests →
+        <Button fullWidth onPress={() => onNavigate('certs')}>
+          Certificates
         </Button>
       </div>
-    </div>
+    </Section>
   );
 }
