@@ -1,3 +1,4 @@
+import { Circle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import type { ApiRefUpdate } from '../../lib/api';
@@ -14,16 +15,16 @@ function RefUpdateRow({ event, index }: { event: ApiRefUpdate; index: number }) 
     <li
       className="grid grid-cols-[16px_minmax(0,1fr)_80px] md:grid-cols-[24px_minmax(0,1fr)_150px_120px_90px]
         items-baseline gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3
-        border-b border-border-inner last:border-b-0 hover:bg-hover transition-colors
-        animate-fade-up motion-reduce:animate-none"
+        border-b border-separator last:border-b-0 hover:bg-surface-secondary transition-colors
+        "
       style={{ animationDelay: `${index * 16}ms` }}
     >
       <span
         aria-hidden="true"
-        className={cn('text-[8px] leading-none select-none self-start pt-[5px]', gossip ? 'text-warm' : 'text-status-dot')}
+        className={cn('text-[8px] leading-none select-none self-start pt-[5px]', gossip ? 'text-accent' : 'text-muted')}
         title={gossip ? 'received via gossip' : 'local push'}
       >
-        ◆
+        <Circle size={7} fill="currentColor" />
       </span>
 
       {/* repo / ref */}
@@ -31,18 +32,18 @@ function RefUpdateRow({ event, index }: { event: ApiRefUpdate; index: number }) 
         {repoRef ? (
           <Link
             to={`/repos/${encodeURIComponent(repoRef.ownerDid)}/${encodeURIComponent(repoRef.name)}`}
-            className="font-bold text-foreground hover:text-warm-text transition-colors"
+            className="font-bold text-foreground hover:text-accent transition-colors"
           >
             {repoRef.label}
           </Link>
         ) : (
           <span className="font-bold text-foreground">{event.repo}</span>
         )}
-        <span className="text-dim"> · {shortRefName(event.ref_name)}</span>
+        <span className="text-muted"> · {shortRefName(event.ref_name)}</span>
       </span>
 
       {/* sha transition */}
-      <span className="hidden md:block text-[12px] text-muted-foreground tabular-nums whitespace-nowrap">
+      <span className="hidden md:block text-[12px] text-muted tabular-nums whitespace-nowrap">
         {created ? (
           <>new · {shortSha(event.new_sha)}</>
         ) : (
@@ -51,12 +52,12 @@ function RefUpdateRow({ event, index }: { event: ApiRefUpdate; index: number }) 
       </span>
 
       {/* pusher */}
-      <span className="hidden md:block text-[12px] text-dim truncate" title={event.pusher_did}>
+      <span className="hidden md:block text-[12px] text-muted truncate" title={event.pusher_did}>
         {shortDid(event.pusher_did)}
       </span>
 
       {/* time */}
-      <span className="text-[11px] text-dim tabular-nums text-right whitespace-nowrap">
+      <span className="text-[11px] text-muted tabular-nums text-right whitespace-nowrap">
         {timeAgo(event.timestamp)}
       </span>
     </li>
@@ -66,7 +67,7 @@ function RefUpdateRow({ event, index }: { event: ApiRefUpdate; index: number }) 
 function RefUpdateRowSkeleton() {
   return (
     <li className="grid grid-cols-[16px_minmax(0,1fr)_80px] md:grid-cols-[24px_minmax(0,1fr)_150px_120px_90px]
-      items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3 border-b border-border-inner last:border-b-0">
+      items-center gap-x-3 md:gap-x-4 px-4 sm:px-6 py-3 border-b border-separator last:border-b-0">
       <span />
       <Skeleton className="h-4 w-52 max-w-full" />
       <Skeleton className="hidden md:block h-4 w-28" />
@@ -112,7 +113,7 @@ export function RefUpdateList({
           {Array.from({ length: skeletonCount }, (_, i) => <RefUpdateRowSkeleton key={i} />)}
         </ul>
       ) : events.length === 0 ? (
-        <p className="m-0 py-16 text-center text-[13px] text-muted-foreground">{emptyMessage}</p>
+        <p className="m-0 py-16 text-center text-[13px] text-muted">{emptyMessage}</p>
       ) : (
         <ul className="m-0 p-0 list-none">
           {events.map((event, i) => <RefUpdateRow key={event.id} event={event} index={i} />)}

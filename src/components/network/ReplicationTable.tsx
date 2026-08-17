@@ -4,9 +4,9 @@ import { parseEventRepo, shortRefName, shortSha, timeAgo } from '../../lib/api';
 import { MicroLabel } from '../ui/MicroLabel';
 
 const PRESENCE_GLYPH: Record<Presence, { glyph: string; cls: string; title: string }> = {
-  origin: { glyph: '◆', cls: 'text-warm', title: 'origin — received the push' },
-  replicated: { glyph: '◆', cls: 'text-ok', title: 'replicated via gossip' },
-  missing: { glyph: '◇', cls: 'text-dim', title: 'not yet replicated' },
+  origin: { glyph: '◆', cls: 'text-accent', title: 'origin — received the push' },
+  replicated: { glyph: '◆', cls: 'text-success', title: 'replicated via gossip' },
+  missing: { glyph: '◇', cls: 'text-muted', title: 'not yet replicated' },
 };
 
 interface ReplicationTableProps {
@@ -24,9 +24,9 @@ export function ReplicationTable({ replication, labels, rowLimit = 12 }: Replica
     <div className="border border-border">
       <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-10 border-b border-border bg-surface">
         <MicroLabel>replication — latest ref updates across nodes</MicroLabel>
-        <span className="text-[11px] tabular-nums text-muted-foreground">
+        <span className="text-[11px] tabular-nums text-muted">
           {replication.fullyReplicatedCount}/{replication.totalTuples} in sync ·{' '}
-          <span className={replication.coveragePercent >= 90 ? 'text-ok' : 'text-warm-text'}>
+          <span className={replication.coveragePercent >= 90 ? 'text-success' : 'text-accent'}>
             {replication.coveragePercent}%
           </span>
         </span>
@@ -48,7 +48,7 @@ export function ReplicationTable({ replication, labels, rowLimit = 12 }: Replica
           </div>
 
           {rows.length === 0 ? (
-            <p className="m-0 py-12 text-center text-[13px] text-muted-foreground">
+            <p className="m-0 py-12 text-center text-[13px] text-muted">
               no ref updates observed on any node yet
             </p>
           ) : (
@@ -58,19 +58,19 @@ export function ReplicationTable({ replication, labels, rowLimit = 12 }: Replica
                 return (
                   <li
                     key={row.tuple.key}
-                    className="grid gap-x-4 px-4 sm:px-6 py-2.5 items-baseline border-b border-border-inner last:border-b-0 hover:bg-hover transition-colors"
+                    className="grid gap-x-4 px-4 sm:px-6 py-2.5 items-baseline border-b border-separator last:border-b-0 hover:bg-surface-secondary transition-colors"
                     style={{ gridTemplateColumns: `minmax(0,1fr) 90px 70px repeat(${labels.length}, 88px)` }}
                   >
                     <span className="min-w-0 truncate text-[12px]">
                       <span className="font-bold text-foreground">
                         {repoRef ? repoRef.label : row.tuple.repo}
                       </span>
-                      <span className="text-dim"> · {shortRefName(row.tuple.ref_name)}</span>
+                      <span className="text-muted"> · {shortRefName(row.tuple.ref_name)}</span>
                     </span>
-                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                    <span className="text-[11px] text-muted tabular-nums">
                       {shortSha(row.tuple.new_sha)}
                     </span>
-                    <span className="text-[11px] text-dim tabular-nums whitespace-nowrap">
+                    <span className="text-[11px] text-muted tabular-nums whitespace-nowrap">
                       {timeAgo(row.tuple.timestamp)}
                     </span>
                     {labels.map(label => {
@@ -95,9 +95,9 @@ export function ReplicationTable({ replication, labels, rowLimit = 12 }: Replica
       </div>
 
       {/* Legend + drift */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 sm:px-6 py-3 border-t border-border text-[10px] text-dim">
-        <span><span aria-hidden="true" className="text-warm">◆</span> origin</span>
-        <span><span aria-hidden="true" className="text-ok">◆</span> replicated</span>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 sm:px-6 py-3 border-t border-border text-[10px] text-muted">
+        <span><span aria-hidden="true" className="text-accent">◆</span> origin</span>
+        <span><span aria-hidden="true" className="text-success">◆</span> replicated</span>
         <span><span aria-hidden="true">◇</span> missing</span>
         <span className="flex-1" />
         {labels.map(l => (

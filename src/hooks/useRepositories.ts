@@ -4,6 +4,7 @@ import type { ApiRepo, RepoSort } from '../lib/api';
 import type { Repository } from '../types/repo';
 import { DEFAULT_PER_PAGE } from '../lib/constants';
 import { useDebouncedValue } from './useDebouncedValue';
+import { useAutoRefresh } from './useAutoRefresh';
 
 interface Options {
   page: number;
@@ -11,7 +12,6 @@ interface Options {
   search?: string;
   sort?: RepoSort;
   owner?: string;
-  refreshKey?: number;
 }
 
 interface Result {
@@ -55,8 +55,8 @@ export function useRepositories({
   search = '',
   sort = 'updated',
   owner = '',
-  refreshKey = 0,
 }: Options): Result {
+  const tick = useAutoRefresh(60_000, true);
   const [apiRepos, setApiRepos] = useState<ApiRepo[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -66,9 +66,9 @@ export function useRepositories({
   const serverQuery = SERVER_SEARCH_ENABLED ? debouncedSearch : '';
   const serverSort: RepoSort = SERVER_SEARCH_ENABLED ? sort : 'updated';
 
-  // Render-phase reset: flip to loading as soon as the query inputs change,
+  // Render-phase reset: flip to loading as soon as the query inputs or tick change,
   // without a cascading effect (react-hooks/set-state-in-effect).
-  const fetchKey = `${page}|${perPage}|${owner}|${serverQuery}|${serverSort}|${refreshKey}`;
+  const fetchKey = `${page}|${perPage}|${owner}|${serverQuery}|${serverSort}|${tick}`;
   const [prevFetchKey, setPrevFetchKey] = useState(fetchKey);
   if (prevFetchKey !== fetchKey) {
     setPrevFetchKey(fetchKey);
@@ -97,7 +97,7 @@ export function useRepositories({
         setLoading(false);
       });
     return () => controller.abort();
-  }, [page, perPage, owner, serverQuery, serverSort, refreshKey]);
+  }, [page, perPage, owner, serverQuery, serverSort, tick]);
 
   const derived = useMemo(() => {
     if (!apiRepos) {

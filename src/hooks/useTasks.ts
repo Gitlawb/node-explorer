@@ -10,7 +10,6 @@ interface Options {
   /** Server-side filter — refetches when it changes. */
   status?: TaskStatus;
   search?: string;
-  refreshKey?: number;
 }
 
 interface Result {
@@ -24,7 +23,7 @@ interface Result {
   error: string | null;
 }
 
-export function useTasks({ page, perPage, status, search = '', refreshKey = 0 }: Options): Result {
+export function useTasks({ page, perPage, status, search = '' }: Options): Result {
   const tick = useAutoRefresh(30_000, true);
   const [all, setAll] = useState<ApiTask[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +32,7 @@ export function useTasks({ page, perPage, status, search = '', refreshKey = 0 }:
   const debouncedSearch = useDebouncedValue(search.trim().toLowerCase(), 300);
 
   // Render-phase reset when the fetch key changes (manual refresh or filter).
-  const fetchKey = `${refreshKey}|${status ?? ''}`;
+  const fetchKey = `${tick}|${status ?? ''}`;
   const [prevFetchKey, setPrevFetchKey] = useState(fetchKey);
   if (prevFetchKey !== fetchKey) {
     setPrevFetchKey(fetchKey);
@@ -56,7 +55,7 @@ export function useTasks({ page, perPage, status, search = '', refreshKey = 0 }:
         setLoading(false);
       });
     return () => controller.abort();
-  }, [refreshKey, status, tick]);
+  }, [tick, status]);
 
   const derived = useMemo(() => {
     if (!all) {

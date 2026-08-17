@@ -6,12 +6,12 @@ export const TASK_STATUSES: TaskStatus[] = ['pending', 'claimed', 'completed', '
 export function taskStatusColor(status: string): string {
   switch (status) {
     case 'claimed':
-      return 'text-warm';
+      return 'text-accent';
     case 'completed':
-      return 'text-ok';
+      return 'text-success';
     case 'failed':
-      return 'text-destructive';
+      return 'text-danger';
     default: // pending & unknown
-      return 'text-status-dot';
+      return 'text-muted';
   }
 }

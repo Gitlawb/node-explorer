@@ -1,4 +1,3 @@
-import { useRefreshKey } from '../hooks/useRefreshKey';
 import { useNetwork } from '../hooks/useNetwork';
 import { FEDERATED_NODES } from '../lib/nodes';
 import { RepoHero } from '../components/repos/RepoHero';
@@ -8,8 +7,7 @@ import { MicroLabel } from '../components/ui/MicroLabel';
 import { Skeleton } from '../components/ui/Skeleton';
 
 export default function NetworkPage() {
-  const { refreshKey, refresh } = useRefreshKey();
-  const { snapshots, replication, loading } = useNetwork(refreshKey);
+  const { snapshots, replication } = useNetwork();
 
   const live = snapshots?.filter(s => s.reachable).length;
   const clusterRepos = snapshots
@@ -28,16 +26,13 @@ export default function NetworkPage() {
         perPage={FEDERATED_NODES.length}
         windowStart={1}
         windowEnd={FEDERATED_NODES.length}
-        refreshing={loading}
-        onRefresh={refresh}
-        title="network."
-        indexLabel="federation status"
+        title="network"
         countNoun="nodes live"
         description={
           <p className="m-0">
             The gitlawb federation: independent nodes replicating repos to each other. Each push is
             certified on its origin node, announced on the{' '}
-            <code className="text-warm-text">gitlawb/ref-updates/v1</code> gossip topic, and picked
+            <code className="text-accent">gitlawb/ref-updates/v1</code> gossip topic, and picked
             up by every peer. Below, the same feed observed from each node — and how far each one
             lags.
           </p>
@@ -80,7 +75,7 @@ export default function NetworkPage() {
           <Skeleton className="h-64 w-full" />
         ) : (
           <div className="border border-border py-12 text-center">
-            <p className="m-0 text-[13px] text-muted-foreground">
+            <p className="m-0 text-[13px] text-muted">
               replication analysis needs event feeds from at least two nodes
             </p>
           </div>

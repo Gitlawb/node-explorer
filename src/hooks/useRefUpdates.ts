@@ -13,7 +13,6 @@ interface Options {
   source?: EventSourceFilter;
   /** Auto-refresh the feed (visibility-aware, 30s). */
   live?: boolean;
-  refreshKey?: number;
 }
 
 interface Result {
@@ -30,7 +29,7 @@ interface Result {
 }
 
 export function useRefUpdates({
-  page, perPage, search = '', source = 'all', live = true, refreshKey = 0,
+  page, perPage, search = '', source = 'all', live = true,
 }: Options): Result {
   const tick = useAutoRefresh(30_000, live);
   const [all, setAll] = useState<ApiRefUpdate[] | null>(null);
@@ -38,13 +37,6 @@ export function useRefUpdates({
   const [error, setError] = useState<string | null>(null);
 
   const debouncedSearch = useDebouncedValue(search.trim().toLowerCase(), 300);
-
-  const [prevRefreshKey, setPrevRefreshKey] = useState(refreshKey);
-  if (prevRefreshKey !== refreshKey) {
-    setPrevRefreshKey(refreshKey);
-    setLoading(true);
-    setError(null);
-  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -61,7 +53,7 @@ export function useRefUpdates({
         setLoading(false);
       });
     return () => controller.abort();
-  }, [refreshKey, tick]);
+  }, [tick]);
 
   const derived = useMemo(() => {
     if (!all) {

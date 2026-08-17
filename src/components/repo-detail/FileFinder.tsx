@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { Input, Button } from '@heroui/react';
 import type { Repository } from '../../types/repo';
 import { getTreeIndex, subscribeTreeIndex, ensureTreeIndex, MAX_INDEX_FILES } from '../../lib/treeIndex';
 import { fuzzyFilter } from '../../lib/fuzzy';
@@ -70,44 +71,43 @@ export function FileFinder({ repo, open, onClose, onOpenFile }: FileFinderProps)
 
   return (
     <Modal open={open} onClose={onClose} label="find file">
-      <input
+      <Input
         autoFocus
-        type="text"
         value={query}
         onChange={e => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="find file…"
         aria-label="find file"
         autoComplete="off"
-        spellCheck={false}
-        className="w-full h-12 px-5 text-[13px] bg-transparent border-b border-border
-          text-foreground placeholder:text-dim focus:outline-none"
+        spellCheck="false"
+        variant="secondary"
+        className="w-full h-12 px-5 border-b border-border rounded-none shadow-none"
       />
       <ul className="m-0 p-0 list-none max-h-[50vh] overflow-y-auto" role="listbox" aria-label="files">
         {results.map((path, i) => {
           const [dir, base] = splitPath(path);
           return (
             <li key={path} role="option" aria-selected={i === sel}>
-              <button
-                type="button"
-                onClick={() => pick(path)}
-                onMouseEnter={() => setSel(i)}
+              <Button
+                variant="tertiary"
+                onPress={() => pick(path)}
+                onPointerEnter={() => setSel(i)}
                 className={cn(
-                  'w-full text-left px-5 py-2 text-[12.5px] truncate cursor-pointer',
-                  i === sel ? 'bg-hover text-foreground' : 'text-muted-foreground',
+                  'w-full text-left px-5 py-2 text-[12.5px] truncate h-auto min-h-0 rounded-none',
+                  i === sel ? 'bg-surface-secondary text-foreground' : 'text-muted',
                 )}
               >
-                <span className="text-dim">{dir}</span>
+                <span className="text-muted">{dir}</span>
                 <span className={cn(i === sel && 'font-bold', 'text-foreground')}>{base}</span>
-              </button>
+              </Button>
             </li>
           );
         })}
         {results.length === 0 && index.status === 'done' && (
-          <li className="px-5 py-6 text-center text-[12.5px] text-muted-foreground">no files match</li>
+          <li className="px-5 py-6 text-center text-[12.5px] text-muted">no files match</li>
         )}
       </ul>
-      <div className="flex items-center justify-between px-5 h-9 border-t border-border text-[11px] text-dim">
+      <div className="flex items-center justify-between px-5 h-9 border-t border-border text-[11px] text-muted">
         <span>
           {index.status === 'building' ? (
             <span className="animate-pulse">indexing… {index.files.length.toLocaleString()} files</span>

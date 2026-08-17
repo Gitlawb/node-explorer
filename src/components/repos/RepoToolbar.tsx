@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Input, Select, SelectTrigger, SelectValue, SelectPopover, Menu, MenuItem } from '@heroui/react';
 import type { RepoSort } from '../../lib/api';
 import { Pill } from '../ui/Pill';
 import { MicroLabel } from '../ui/MicroLabel';
@@ -67,21 +68,18 @@ export function RepoToolbar({
         <MicroLabel className="block mb-1.5">
           <label htmlFor="repo-search">search</label>
         </MicroLabel>
-        <input
+        <Input
           id="repo-search"
-          type="search"
           value={value}
           onChange={e => handleChange(e.target.value)}
           placeholder="search repos…"
           autoComplete="off"
-          spellCheck={false}
-          className="w-full h-9 px-3 text-[13px] bg-transparent border border-border rounded-[2px]
-            text-foreground placeholder:text-dim
-            focus:outline-none focus-visible:ring-1 focus-visible:ring-warm focus:border-dim
-            transition-colors"
+          spellCheck="false"
+          variant="secondary"
+          className="w-full h-9 px-3 rounded-[--radius]"
         />
         {search && searchScope === 'page' && (
-          <p className="m-0 mt-1.5 text-[11px] text-dim">
+          <p className="m-0 mt-1.5 text-[11px] text-muted">
             searching within this page ({loadedCount} loaded)
           </p>
         )}
@@ -93,18 +91,23 @@ export function RepoToolbar({
           <MicroLabel className="block mb-1.5">
             <label htmlFor="repo-sort">sort</label>
           </MicroLabel>
-          <select
-            id="repo-sort"
-            value={sort}
-            onChange={e => onSortChange(e.target.value as RepoSort)}
-            className="select-chevron h-9 pl-3 pr-7 text-[12px] bg-transparent border border-border rounded-[2px]
-              text-muted-foreground cursor-pointer
-              focus:outline-none focus-visible:ring-1 focus-visible:ring-warm hover:border-dim transition-colors"
+          <Select
+            selectedKey={sort}
+            onSelectionChange={key => onSortChange(key as RepoSort)}
+            variant="secondary"
+            className="min-w-[140px]"
           >
-            {SORT_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+            <SelectTrigger id="repo-sort" className="h-9 text-[12px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopover>
+              <Menu>
+                {SORT_OPTIONS.map(o => (
+                  <MenuItem key={o.value} id={o.value}>{o.label}</MenuItem>
+                ))}
+              </Menu>
+            </SelectPopover>
+          </Select>
         </div>
 
         {/* Fork filter */}

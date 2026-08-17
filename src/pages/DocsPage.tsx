@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Navigate, useParams } from 'react-router-dom';
+import { Link } from '@heroui/react';
 import { MarkdownView } from '../components/repo-detail/MarkdownView';
 import { TocRail } from '../components/repo-detail/TocRail';
 import { extractTocHeadings } from '../lib/toc';
@@ -79,18 +80,18 @@ export default function DocsPage() {
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         <aside className="lg:w-48 shrink-0">
           <MicroLabel className="mb-3">docs</MicroLabel>
-          <nav aria-label="documentation" className="flex lg:flex-col gap-1 overflow-x-auto scrollbar-none">
+          <nav aria-label="documentation" className="flex lg:flex-col gap-1 overflow-x-auto">
             {DOCS.map(d => (
               <NavLink
                 key={d.slug}
                 to={`/docs/${d.slug}`}
                 className={({ isActive }) =>
                   cn(
-                    'px-2 py-1.5 text-[13px] lowercase whitespace-nowrap rounded-sm transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm',
+                    'px-2 py-1.5 text-[13px] lowercase whitespace-nowrap rounded-[--radius] transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
                     isActive
                       ? 'text-foreground font-bold bg-muted'
-                      : 'text-muted-foreground hover:text-foreground',
+                      : 'text-muted hover:text-foreground',
                   )
                 }
               >
@@ -98,17 +99,17 @@ export default function DocsPage() {
               </NavLink>
             ))}
           </nav>
-          <div className="hidden lg:block mt-6 pt-4 border-t border-border text-[12px] text-muted-foreground space-y-1.5">
+          <div className="hidden lg:block mt-6 pt-4 border-t border-border text-[12px] text-muted space-y-1.5">
             <p>
-              <a className="hover:text-foreground underline" href="/skill.md">skill.md</a>
+              <Link href="/skill.md" className="underline">skill.md</Link>
               {' — agent skill file'}
             </p>
             <p>
-              <a className="hover:text-foreground underline" href="/llms.txt">llms.txt</a>
+              <Link href="/llms.txt" className="underline">llms.txt</Link>
               {' — machine index'}
             </p>
             <p>
-              <a className="hover:text-foreground underline" href={`/docs/${slug}.md`}>raw markdown</a>
+              <Link href={`/docs/${slug}.md`} className="underline">raw markdown</Link>
               {' — this page'}
             </p>
           </div>
@@ -116,10 +117,10 @@ export default function DocsPage() {
 
         <main className="min-w-0 flex-1 max-w-[820px]">
           {state.error && (
-            <p className="text-[13px] text-muted-foreground py-8">{doc.title}: {state.error}</p>
+            <p className="text-[13px] text-muted py-8">{doc.title}: {state.error}</p>
           )}
           {!state.error && state.html === null && (
-            <p className="text-[13px] text-muted-foreground py-8">loading…</p>
+            <p className="text-[13px] text-muted py-8">loading…</p>
           )}
           {state.html !== null && <MarkdownView html={state.html} />}
         </main>

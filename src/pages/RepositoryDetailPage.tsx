@@ -11,40 +11,29 @@ import { ClonePanel } from '../components/repo-detail/ClonePanel';
 import { CommitStrip } from '../components/repo-detail/CommitStrip';
 import { DetailTabs } from '../components/repo-detail/DetailTabs';
 import { Skeleton } from '../components/ui/Skeleton';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '../components/ui/breadcrumb';
-
 function PageBreadcrumb({ owner, name }: { owner: string; name: string }) {
   return (
-    <Breadcrumb className="mb-8 sm:mb-10">
-      <BreadcrumbList className="text-[12.5px] gap-1.5 sm:gap-2 flex-nowrap min-w-0">
-        <BreadcrumbItem className="shrink-0">
-          <BreadcrumbLink asChild>
-            <Link
-              to="/repos"
-              className="text-muted-foreground hover:text-foreground transition-colors duration-150
-                focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
-            >
-              repos
-            </Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator className="text-dim shrink-0" />
-        <BreadcrumbItem className="shrink-0 min-w-0 max-w-[100px] sm:max-w-[180px]">
-          <span className="text-muted-foreground truncate block">{shortDid(owner)}</span>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator className="text-dim shrink-0" />
-        <BreadcrumbItem className="min-w-0">
-          <BreadcrumbPage className="text-foreground font-bold truncate block">{name}</BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
+    <nav aria-label="breadcrumb" className="mb-8 sm:mb-10">
+      <ol className="flex items-center gap-1.5 sm:gap-2 text-[12.5px] flex-nowrap min-w-0 text-muted">
+        <li className="shrink-0 inline-flex items-center gap-1.5">
+          <Link
+            to="/repos"
+            className="hover:text-foreground transition-colors duration-150
+              focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >
+            repos
+          </Link>
+        </li>
+        <li role="presentation" aria-hidden="true" className="text-muted shrink-0">/</li>
+        <li className="shrink-0 min-w-0 max-w-[100px] sm:max-w-[180px] inline-flex items-center gap-1.5">
+          <span className="text-muted truncate block">{shortDid(owner)}</span>
+        </li>
+        <li role="presentation" aria-hidden="true" className="text-muted shrink-0">/</li>
+        <li className="min-w-0 inline-flex items-center gap-1.5">
+          <span className="text-foreground font-bold truncate block">{name}</span>
+        </li>
+      </ol>
+    </nav>
   );
 }
 
@@ -58,13 +47,12 @@ function StatusShell({ owner, name, title, message }: {
     <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12">
       <PageBreadcrumb owner={owner} name={name} />
       <div className="flex flex-col items-center justify-center py-24 sm:py-32 text-center border border-border">
-        <span className="text-[56px] mb-8 opacity-10 select-none" aria-hidden="true">◆</span>
         <h2 className="text-[18px] font-bold mb-3 text-foreground lowercase">{title}</h2>
-        <p className="m-0 text-[13px] mb-8 text-muted-foreground">{message}</p>
+        <p className="m-0 text-[13px] mb-8 text-muted">{message}</p>
         <Link
           to="/repos"
-          className="text-[13px] text-warm-text hover:underline
-            focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-warm"
+          className="text-[13px] text-accent hover:underline
+            focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
         >
           ← back to repositories
         </Link>
@@ -169,11 +157,11 @@ export default function RepositoryDetailPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12 animate-fade-in">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12 ">
       <PageBreadcrumb owner={owner} name={name} />
 
       {partialError && (
-        <p className="m-0 mb-6 px-4 py-3 border border-destructive/40 text-[12px] text-destructive">
+        <p className="m-0 mb-6 px-4 py-3 border border-danger/40 text-[12px] text-danger">
           {partialError} — some sections may appear empty
         </p>
       )}

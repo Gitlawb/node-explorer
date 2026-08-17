@@ -31,7 +31,7 @@ const nullOnError = <T,>(p: Promise<T>): Promise<T | null> => p.catch(() => null
  * independently (a failed corner renders as "—", never breaks the page) and
  * the whole sweep re-runs on a visibility-aware 60s tick.
  */
-export function useNodeOverview(refreshKey = 0): NodeOverview {
+export function useNodeOverview(): NodeOverview {
   const tick = useAutoRefresh(60_000, true);
   const [state, setState] = useState<Omit<NodeOverview, 'loading' | 'unreachable'>>({
     node: null,
@@ -43,13 +43,6 @@ export function useNodeOverview(refreshKey = 0): NodeOverview {
     recentRepos: null,
   });
   const [loaded, setLoaded] = useState(false);
-
-  // Render-phase reset on manual refresh only (ticks refresh in place).
-  const [prevRefreshKey, setPrevRefreshKey] = useState(refreshKey);
-  if (prevRefreshKey !== refreshKey) {
-    setPrevRefreshKey(refreshKey);
-    setLoaded(false);
-  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -70,7 +63,7 @@ export function useNodeOverview(refreshKey = 0): NodeOverview {
     });
 
     return () => controller.abort();
-  }, [refreshKey, tick]);
+  }, [tick]);
 
   const unreachable =
     loaded &&

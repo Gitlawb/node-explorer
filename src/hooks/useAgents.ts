@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchAgents } from '../lib/api';
 import type { ApiAgent } from '../lib/api';
 import { useDebouncedValue } from './useDebouncedValue';
+import { useAutoRefresh } from './useAutoRefresh';
 
 // The agents endpoint is unpaginated, so the full list is fetched once per
-// session and paged/filtered client-side.
+// refetch cycle and paged/filtered client-side.
 let agentsCache: ApiAgent[] | null = null;
 let agentsPromise: Promise<ApiAgent[]> | null = null;
 
@@ -38,7 +39,6 @@ interface Options {
   page: number;
   perPage: number;
   search?: string;
-  refreshKey?: number;
 }
 
 interface Result {
@@ -51,24 +51,26 @@ interface Result {
   error: string | null;
 }
 
-export function useAgents({ page, perPage, search = '', refreshKey = 0 }: Options): Result {
+export function useAgents({ page, perPage, search = '' }: Options): Result {
+  const tick = useAutoRefresh(60_000, true);
   const [all, setAll] = useState<ApiAgent[] | null>(agentsCache);
   const [loading, setLoading] = useState(agentsCache === null);
   const [error, setError] = useState<string | null>(null);
 
   const debouncedSearch = useDebouncedValue(search.trim().toLowerCase(), 300);
 
-  // Render-phase reset on refresh (react-hooks/set-state-in-effect)
-  const [prevRefreshKey, setPrevRefreshKey] = useState(refreshKey);
-  if (prevRefreshKey !== refreshKey) {
-    setPrevRefreshKey(refreshKey);
+  // Render-phase reset on tick or when the search query resolves to a new page.
+  const fetchKey = `${tick}|${debouncedSearch}`;
+  const [prevFetchKey, setPrevFetchKey] = useState(fetchKey);
+  if (prevFetchKey !== fetchKey) {
+    setPrevFetchKey(fetchKey);
     setLoading(true);
     setError(null);
   }
 
   useEffect(() => {
     let cancelled = false;
-    loadAgents(refreshKey > 0)
+    loadAgents(tick > 0)
       .then(agents => {
         if (cancelled) return;
         setAll(agents);
@@ -80,7 +82,7 @@ export function useAgents({ page, perPage, search = '', refreshKey = 0 }: Option
         setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [tick, debouncedSearch, page, perPage]);
 
   const derived = useMemo(() => {
     if (!all) {

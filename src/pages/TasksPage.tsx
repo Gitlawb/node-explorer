@@ -1,9 +1,10 @@
+import { Circle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useCallback, useRef, useState } from 'react';
+import { Input } from '@heroui/react';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useTasks } from '../hooks/useTasks';
-import { useRefreshKey } from '../hooks/useRefreshKey';
 import type { TaskStatus } from '../lib/api';
 import { TaskList } from '../components/tasks/TaskList';
 import { TASK_STATUSES, taskStatusColor } from '../components/tasks/status';
@@ -25,8 +26,6 @@ export default function TasksPage() {
   const rawPer = Number(searchParams.get('per'));
   const perPage = PER_PAGE_OPTIONS.includes(rawPer) ? rawPer : DEFAULT_PER_PAGE;
 
-  const { refreshKey, refresh } = useRefreshKey();
-
   const setParams = useCallback(
     (updates: Record<string, string | null>, replace = false) => {
       setSearchParams(prev => {
@@ -42,7 +41,7 @@ export default function TasksPage() {
   );
 
   const { tasks, allCount, totalCount, totalPages, windowStart, windowEnd, loading, error } =
-    useTasks({ page, perPage, status, search, refreshKey });
+    useTasks({ page, perPage, status, search });
 
   const listRef = useRef<HTMLDivElement>(null);
   useListNav(listRef);
@@ -65,16 +64,12 @@ export default function TasksPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        refreshing={loading}
-        onRefresh={refresh}
-        title="tasks."
-        indexLabel="agent task queue"
+        title="tasks"
         countNoun="tasks"
-        statLabel={status ? `${status} tasks` : 'tasks'}
         description={
           <p className="m-0">
             Work delegated between agents on this node. A delegator posts a task with a required{' '}
-            <code className="text-warm-text">capability</code>, an agent claims it, executes, and
+            <code className="text-accent">capability</code>, an agent claims it, executes, and
             reports back. The queue refreshes itself every 30s.
           </p>
         }
@@ -97,9 +92,8 @@ export default function TasksPage() {
             <MicroLabel className="block mb-1.5">
               <label htmlFor="task-search">search</label>
             </MicroLabel>
-            <input
+            <Input
               id="task-search"
-              type="search"
               value={searchValue}
               onChange={e => {
                 setSearchValue(e.target.value);
@@ -107,13 +101,9 @@ export default function TasksPage() {
               }}
               placeholder="search by title, kind, capability, or did…"
               autoComplete="off"
-              spellCheck={false}
-              className={cn(
-                'w-full h-9 px-3 text-[13px] bg-transparent border border-border rounded-[2px]',
-                'text-foreground placeholder:text-dim',
-                'focus:outline-none focus-visible:ring-1 focus-visible:ring-warm focus:border-dim',
-                'transition-colors',
-              )}
+              spellCheck="false"
+              variant="secondary"
+              className="w-full h-9 px-3 rounded-[--radius]"
             />
           </div>
 
@@ -134,7 +124,7 @@ export default function TasksPage() {
                   onClick={() => setParams({ status: status === s ? null : s, page: null })}
                   aria-pressed={status === s}
                 >
-                  <span aria-hidden="true" className={cn('text-[8px]', taskStatusColor(s))}>◆</span>
+                  <Circle size={7} fill="currentColor" aria-hidden="true" className={cn(taskStatusColor(s))} />
                   {s}
                 </Pill>
               ))}
@@ -144,8 +134,7 @@ export default function TasksPage() {
 
         {error ? (
           <div className="border border-border py-16 text-center">
-            <p className="m-0 text-[13px] text-destructive mb-4">failed to load tasks: {error}</p>
-            <Pill onClick={refresh}>retry</Pill>
+            <p className="m-0 text-[13px] text-danger mb-4">failed to load tasks: {error}</p>
           </div>
         ) : (
           <>
