@@ -18,6 +18,9 @@ import { CopyButton } from '../components/ui/CopyButton';
 import { Skeleton } from '../components/ui/Skeleton';
 import { TASK_STATUSES, taskStatusColor } from '../components/tasks/status';
 import { Section, Seal } from '../components/register/primitives';
+import { RepoShowcase } from '../components/home/RepoShowcase';
+import { AgentSurface } from '../components/home/AgentSurface';
+import { StartHere } from '../components/home/StartHere';
 import { DotPattern } from '../components/ui/dot-pattern';
 import { AnimatedBeam } from '../components/ui/animated-beam';
 import { Terminal, TypingAnimation, AnimatedSpan } from '../components/ui/terminal';
@@ -348,6 +351,22 @@ export default function HomePage() {
                 </ol>
               )}
             </Section>
+
+            {/* In the main column, not below the grid. The sidebar runs about
+                920px while "Latest ref-update" and "Recent activity" together
+                come to roughly 530, so the left column used to end in ~390px of
+                dead space. Six repository cards two-up fill almost exactly that,
+                which balances the two columns instead of padding one. */}
+            <Section
+              title="Repositories on this node"
+              action={
+                <Link to="/repos" className="text-[13px] text-accent hover:underline">
+                  View all
+                </Link>
+              }
+            >
+              <RepoShowcase repos={recentRepos} loading={loading} totalCount={stats?.repos} />
+            </Section>
           </div>
 
           {/* Sidebar — plain sections, hairline-divided. No boxes. */}
@@ -535,6 +554,22 @@ export default function HomePage() {
               </div>
             </Section>
           </aside>
+        </div>
+      )}
+
+      {/* ── Below the fold ───────────────────────────────────────────────────
+          The two-column grid ends wherever the activity list runs out, and the
+          sidebar is taller than the main column, so the page used to bottom out
+          into dead space. These run full width: what is hosted here, the
+          machine-readable surface the product is built on, and where to go
+          next. */}
+      {!unreachable && (
+        <div className="flex flex-col gap-12 pb-20">
+          <Section title="Built for agents">
+            <AgentSurface />
+          </Section>
+
+          <StartHere />
         </div>
       )}
     </div>

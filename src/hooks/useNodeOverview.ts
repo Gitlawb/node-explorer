@@ -55,7 +55,15 @@ export function useNodeOverview(): NodeOverview {
       nullOnError(fetchP2PInfo(signal)),
       nullOnError(fetchRefUpdates(50, signal)),
       nullOnError(fetchTasks({ signal })),
-      nullOnError(fetchRepos({ limit: 4, offset: 0, signal }).then(r => r.repos)),
+      // Six, not four: the overview's main column ends with a two-up grid of
+      // repositories, and the first of them also drives the clone
+      // demonstration in the sidebar.
+      //
+      // Order is whatever the node returns. fetchRepos omits the sort param
+      // when the sort is 'updated', so nothing here requests "most recently
+      // updated" and the page must not imply it — each card states its own
+      // updated_at, which is a fact about that repository alone.
+      nullOnError(fetchRepos({ limit: 6, offset: 0, signal }).then(r => r.repos)),
     ]).then(([node, stats, peers, p2p, events, tasks, recentRepos]) => {
       if (signal.aborted) return;
       setState({ node, stats, peers, p2p, events, tasks, recentRepos });

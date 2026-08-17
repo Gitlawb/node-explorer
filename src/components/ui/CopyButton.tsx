@@ -6,6 +6,12 @@ import { cn } from '../../lib/utils';
 interface CopyButtonProps {
   value: string;
   label?: string;
+  /**
+   * Accessible name, when the visible label is too terse to stand alone.
+   * Several of these can appear in one list, where "copy Copy" leaves a screen
+   * reader user no way to tell the rows apart.
+   */
+  srLabel?: string;
   size?: 'sm' | 'md';
   className?: string;
 }
@@ -15,7 +21,7 @@ interface CopyButtonProps {
  * pages, so an uppercase tracked label put fifty shouting chips on a page whose
  * whole job is scanning.
  */
-export function CopyButton({ value, label = 'Copy', size = 'sm', className }: CopyButtonProps) {
+export function CopyButton({ value, label = 'Copy', srLabel, size = 'sm', className }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -31,7 +37,7 @@ export function CopyButton({ value, label = 'Copy', size = 'sm', className }: Co
       variant="tertiary"
       size={size === 'md' ? 'md' : 'sm'}
       onPress={handleCopy}
-      aria-label={`copy ${label}`}
+      aria-label={srLabel ?? `copy ${label}`}
       className={cn(copied && 'text-success', className)}
     >
       {copied ? 'Copied' : label}
