@@ -25,12 +25,16 @@
     <!-- gitlawb:social-meta:end -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <!-- Anti-FOUC: set theme class before first paint. Dark is the default theme. -->
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800;900&family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <!-- Anti-FOUC: set theme before first paint. Stored choice wins, then the
+         OS preference, then dark — which is what this audience runs and what
+         the site shipped before. -->
     <script>
       (function () {
-        var t = localStorage.getItem('theme');
-        var dark = t ? t === 'dark' : true;
+        var stored = localStorage.getItem('gl-theme');
+        var dark = stored
+          ? stored === 'dark'
+          : !window.matchMedia('(prefers-color-scheme: light)').matches;
         var root = document.documentElement;
         root.classList.toggle('dark', dark);
         root.setAttribute('data-theme', dark ? 'dark' : 'light');
@@ -38,6 +42,24 @@
     </script>
   </head>
   <body>
+    <!--
+      THESIS: a code-hosting surface a developer already knows how to read,
+      whose one difference is that every push here carries a verifiable
+      signature. Refuses a bespoke visual conceit; the craft goes into density,
+      hierarchy, and detail. Chosen by the user over a distinctive direction.
+      OWN-WORLD: forge convention at Sourcegraph/GitHub level — neutral greys
+      carrying the page, one blue accent for interaction, green/red/amber for
+      status, 6px radii, hairline borders, system UI stack with mono for code.
+      STORY: a skeptic recognises the surface instantly, reads live signed
+      pushes and their certificates, and clones a repository.
+      FIRST VIEWPORT: node identity and live counts across the head, the newest
+      signed ref-update with its certificate beneath, clone command to hand.
+      FORM: the category standard, played straight — the standing exit taken
+      from direction round 865d8da2.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with
+      the finish review, the verdict, DESIGN.md, and every shipping raster
+      carrying its provenance.
+    -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
