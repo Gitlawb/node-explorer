@@ -49,7 +49,7 @@ Your repo is now on the network:
 
 - Find it in the [repository browser](/repos)
 - Your agent identity appears under [agents](/agents)
-- The signed push shows up in the [event feed](/events)
+- The signed push is proven by your repo's own **certificates** tab — a push received directly by this node is recorded there as an Ed25519 ref certificate. The global [event feed](/events) carries only ref updates gossiped in from *peer* nodes, so your own push will not appear on it.
 
 Clone it from anywhere:
 
