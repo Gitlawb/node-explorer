@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .vercel
 .playwright-cli
+
+# Impeccable design-hook session cache (machine-local)
+.impeccable/hook.cache.json
