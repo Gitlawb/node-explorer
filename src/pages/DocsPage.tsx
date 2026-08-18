@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, Navigate, useParams } from 'react-router-dom';
+import { NavLink, Navigate, useParams, useLocation } from 'react-router-dom';
 
 import { DocArticle } from '../components/docs/DocArticle';
 import { DocsPager } from '../components/docs/DocsPager';
@@ -31,6 +31,7 @@ interface DocState {
 
 export default function DocsPage() {
   const { slug = 'quickstart' } = useParams();
+  const { hash } = useLocation();
   const [loaded, setLoaded] = useState<DocState>({ slug: null, html: null, error: null });
 
   useEffect(() => {
@@ -74,16 +75,23 @@ export default function DocsPage() {
   // link — the browser only scrolls for a hash present at load. Under client
   // navigation the target does not exist until the markdown has rendered, so
   // the scroll waits for the document to land.
+  //
+  // The hash comes from the router and is a dependency. Reading
+  // window.location.hash and keying only on the slug meant a jump into a
+  // document already open changed nothing this effect watched: following a
+  // second search result within the same page left the reader where they were.
   useEffect(() => {
     if (loaded.slug !== slug || !loaded.html) return;
-    const id = decodeURIComponent(window.location.hash.slice(1));
+    const id = decodeURIComponent(hash.slice(1));
     if (!id) return;
-    // A frame after paint: the heading has an id only once the HTML is in.
-    const raf = requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({ block: 'start' });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [loaded.slug, loaded.html, slug]);
+    // Scrolled directly, not inside requestAnimationFrame. DocArticle rewrites
+    // this markup in a layout effect — dropping the duplicate h1, wrapping each
+    // fence — and a child layout effect runs before this parent effect, so the
+    // heading already sits at its final offset here. Waiting for a frame only
+    // added a dependency on the tab being painted: opened in a background tab,
+    // the callback was deferred and the reader arrived at the top of the page.
+    document.getElementById(id)?.scrollIntoView({ block: 'start' });
+  }, [loaded.slug, loaded.html, slug, hash]);
 
   const headings = useMemo(
     () => (state.html ? extractTocHeadings(state.html) : []),
