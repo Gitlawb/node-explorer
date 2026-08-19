@@ -35,6 +35,24 @@ npm run build
 All three must pass. `npm run build` includes the TypeScript project build
 (`tsc -b`), so type errors fail there.
 
+### Editing the security headers
+
+`vercel.json`'s `headers` block is strict JSON — it can't carry inline
+comments — so these two couplings are documented here instead:
+
+- **The CSP `script-src` hash and the inline theme script.** `index.html`'s
+  anti-FOUC theme script is allowlisted by sha256 hash rather than
+  `'unsafe-inline'`. Changing that script, even its whitespace, changes the
+  hash, and a stale hash in `vercel.json` makes the script silently stop
+  running under CSP (symptom: a theme flash on load, stored preference
+  ignored). Recompute the hash and update `script-src` whenever the script
+  changes.
+- **The CSP `connect-src` allowlist and `FEDERATED_NODES`.** `src/lib/nodes.ts`
+  lists every node host the app talks to; `vercel.json`'s `connect-src` (and
+  its per-node proxy `rewrites`) must list the same hosts. There's no CSP in
+  dev, so a host added to one but not the other passes locally and is
+  silently blocked in production.
+
 ## What makes a good PR
 
 - **Keep it focused.** One logical change per PR. Refactors, formatting sweeps, and
