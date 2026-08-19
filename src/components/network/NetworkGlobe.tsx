@@ -58,8 +58,11 @@ export function NetworkGlobe() {
     [isDark],
   );
 
+  // The globe is smaller on a phone. The sphere is decorative — the markers
+  // are a stock world spread, not peer positions — and at 343px square it took
+  // most of a screen, nearly all of it dark sphere against a dark ground.
   return (
-    <div className="relative mx-auto w-full max-w-[460px] aspect-square">
+    <div className="relative mx-auto w-full max-w-[250px] sm:max-w-[460px] aspect-square">
       <Globe config={config} className="top-0" />
     </div>
   );
