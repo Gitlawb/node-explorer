@@ -2,6 +2,7 @@ import { Button } from '../register/controls';
 import { CopyButton } from '../ui/CopyButton';
 import { Section } from '../register/primitives';
 import { MagicCard } from '../ui/magic-card';
+import { isHttpUrl } from '../../lib/api';
 
 interface ClonePanelProps {
   /** The node's https clone URL — plain git handles this one. */
@@ -36,7 +37,7 @@ export function ClonePanel({ cloneUrl, gitlawbUrl, onNavigate }: ClonePanelProps
         </code>
       </MagicCard>
 
-      {gitlawbUrl && (
+      {gitlawbUrl && isHttpUrl(cloneUrl) && (
         <p className="m-0 mt-2 text-[12px] leading-relaxed text-muted">
           The <code className="font-mono">gitlawb://</code> scheme requires the{' '}
           <code className="font-mono">git-remote-gitlawb</code> helper. Plain{' '}
