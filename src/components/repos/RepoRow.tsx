@@ -33,7 +33,7 @@ export function RepoRow({ repo }: RepoRowProps) {
       ref={ref}
       {...prefetch}
       className="group relative grid items-center gap-x-4 sm:gap-x-6
-        grid-cols-[minmax(0,1fr)_auto]
+        grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto]
         md:grid-cols-[minmax(0,1fr)_64px_auto]
         border-b border-separator last:border-b-0 px-4 py-3
         transition-colors hover:bg-surface-secondary"
@@ -80,8 +80,12 @@ export function RepoRow({ repo }: RepoRowProps) {
           )}
         </div>
 
+        {/* Two lines on a phone, one on desktop. Stacked, the row has the width
+            for a second line, and a description cut mid-word tells the reader
+            less than the sentence does. Desktop keeps one line so the list
+            stays scannable at density. */}
         {repo.description && (
-          <p className="m-0 mt-1 text-[13px] leading-snug text-muted truncate">
+          <p className="m-0 mt-1 text-[13px] leading-snug text-muted line-clamp-2 sm:line-clamp-none sm:truncate">
             {repo.description}
           </p>
         )}
@@ -92,7 +96,7 @@ export function RepoRow({ repo }: RepoRowProps) {
         <Sparkline data={activity} />
       </div>
 
-      <div className="flex items-center gap-3 whitespace-nowrap justify-self-end">
+      <div className="mt-1.5 sm:mt-0 flex items-center gap-3 whitespace-nowrap justify-self-start sm:justify-self-end">
         {repo.stars > 0 && (
           <span className="inline-flex items-center gap-1 text-[13px] tabular text-muted">
             <Star size={13} className="text-attention" />
@@ -100,7 +104,7 @@ export function RepoRow({ repo }: RepoRowProps) {
           </span>
         )}
         <span className="text-[13px] tabular text-muted">{repo.updatedAt}</span>
-        <span className="relative z-10 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <span className="relative z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
           <CopyButton value={`git clone ${repo.cloneUrl}`} label="clone" />
         </span>
       </div>
