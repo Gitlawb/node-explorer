@@ -32,6 +32,10 @@ export function CodeView({ content, path, wrap = false }: CodeViewProps) {
         if (cancelled) return;
         if (result) setHtmlLines(result);
         setSettled(true);
+      })
+      .catch(() => {
+        // Plain text is already rendered; only the optional highlighting failed.
+        if (!cancelled) setSettled(true);
       });
     return () => { cancelled = true; };
   }, [content, lang]);
@@ -52,6 +56,9 @@ export function CodeView({ content, path, wrap = false }: CodeViewProps) {
   }, [settled]);
 
   const handleGutterClick = (e: React.MouseEvent, n: number) => {
+    // Preserve native link behavior for Cmd/Ctrl-click so a line permalink can
+    // still be opened in a new tab. Shift remains reserved for range selection.
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.altKey) return;
     e.preventDefault();
     const next: [number, number] =
       e.shiftKey && range ? [Math.min(range[0], n), Math.max(range[1], n)] : [n, n];
@@ -61,19 +68,25 @@ export function CodeView({ content, path, wrap = false }: CodeViewProps) {
   };
 
   return (
-    <div className="overflow-auto max-h-[75vh]">
-      <table className={cn('code-table w-full text-[12px] sm:text-[13px]', wrap && 'table-fixed')}>
+    <div className="overflow-x-auto overscroll-contain md:max-h-[75vh] md:overflow-auto">
+      <table
+        aria-label={`Source for ${path}`}
+        translate="no"
+        className={cn('code-table w-full text-[12px] sm:text-[13px]', wrap && 'table-fixed')}
+      >
         <tbody>
           {lines.map((line, i) => {
             const n = i + 1;
             const inRange = range !== null && n >= range[0] && n <= range[1];
             return (
-              <tr key={n} id={`L${n}`} className={cn('scroll-mt-14', inRange && 'line-hl')}>
+              <tr key={n} id={`L${n}`} className={cn('code-line scroll-mt-28', inRange && 'line-hl')}>
                 <td className="w-[1%] pr-3 pl-4 text-right align-top select-none border-r border-separator">
                   <a
                     href={`#L${n}`}
                     onClick={e => handleGutterClick(e, n)}
-                    className="text-muted tabular-nums hover:text-muted"
+                    aria-label={`select line ${n}`}
+                    aria-current={inRange ? 'location' : undefined}
+                    className="text-muted tabular-nums hover:text-foreground transition-colors"
                   >
                     {n}
                   </a>

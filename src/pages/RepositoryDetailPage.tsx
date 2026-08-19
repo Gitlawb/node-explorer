@@ -4,6 +4,9 @@ import { useRepository } from '../hooks/useRepository';
 import { useRepositorySocialMetadata } from '../hooks/useRepositorySocialMetadata';
 import { useShortcut, useShortcuts } from '../hooks/useShortcuts';
 import { shortDid, didKeySegment } from '../lib/api';
+import { normalizeRepoPath } from '../lib/lang';
+import { buildRepoCodeSearch } from '../lib/repoNavigation';
+import { cn } from '../lib/utils';
 import { FileFinder } from '../components/repo-detail/FileFinder';
 import { DetailHeader } from '../components/repo-detail/DetailHeader';
 import { ClonePanel } from '../components/repo-detail/ClonePanel';
@@ -99,6 +102,8 @@ export default function RepositoryDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab') ?? 'code';
   const tab = TAB_IDS.includes(rawTab) ? rawTab : 'code';
+  const fileOpen = tab === 'code'
+    && Boolean(normalizeRepoPath(searchParams.get('file') ?? ''));
 
   // Switching tabs drops the code-navigation params
   const setTab = useCallback(
@@ -118,13 +123,7 @@ export default function RepositoryDetailPage() {
 
   const openFile = useCallback(
     (path: string) => {
-      setSearchParams(prev => {
-        const next = new URLSearchParams(prev);
-        next.delete('tab');
-        next.set('file', path);
-        for (const key of ['path', 'view', 'force']) next.delete(key);
-        return next;
-      });
+      setSearchParams(prev => new URLSearchParams(buildRepoCodeSearch(prev, { file: path })));
     },
     [setSearchParams],
   );
@@ -171,8 +170,12 @@ export default function RepositoryDetailPage() {
 
       {repo.latestCommit && <CommitStrip commit={repo.latestCommit} />}
 
-      {/* Tabs full width, content below, sidebar alongside the content. */}
-      <div className="mt-6 grid lg:grid-cols-[minmax(0,1fr)_268px] gap-x-10 gap-y-8">
+      {/* An open file is the primary workspace and takes the full width. The
+          clone panel returns when the visitor goes back to repository browsing. */}
+      <div className={cn(
+        'mt-6 grid gap-x-10 gap-y-8',
+        !fileOpen && 'lg:grid-cols-[minmax(0,1fr)_268px]',
+      )}>
         <div className="min-w-0">
           <DetailTabs
             repo={repo}
@@ -182,13 +185,15 @@ export default function RepositoryDetailPage() {
           />
         </div>
 
-        <aside className="min-w-0 flex flex-col gap-6">
-          <ClonePanel
-            cloneUrl={repo.cloneUrl}
-            gitlawbUrl={`gitlawb://${didKeySegment(repo.owner)}/${repo.name}`}
-            onNavigate={setTab}
-          />
-        </aside>
+        {!fileOpen && (
+          <aside className="min-w-0 flex flex-col gap-6">
+            <ClonePanel
+              cloneUrl={repo.cloneUrl}
+              gitlawbUrl={`gitlawb://${didKeySegment(repo.owner)}/${repo.name}`}
+              onNavigate={setTab}
+            />
+          </aside>
+        )}
       </div>
 
       <FileFinder

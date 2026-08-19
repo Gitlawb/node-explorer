@@ -122,7 +122,7 @@ export async function renderMarkdown(md: string, ctx: MarkdownCtx): Promise<stri
         const [pathPart, hash] = href.split('#', 2);
         node.setAttribute(
           'href',
-          `?tab=code&file=${encodeURIComponent(normalizeRepoPath(`${prefix}${pathPart}`))}${hash ? `#${hash}` : ''}`,
+          `?file=${encodeURIComponent(normalizeRepoPath(`${prefix}${pathPart}`))}${hash ? `#${hash}` : ''}`,
         );
         node.setAttribute('data-repo-link', '1');
       } else if (/^https?:\/\//.test(href)) {

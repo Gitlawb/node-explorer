@@ -9,7 +9,7 @@ interface MarkdownViewProps {
 /**
  * Renders sanitized markdown HTML. Relative repo links (marked with
  * data-repo-link by renderMarkdown) are intercepted for SPA navigation —
- * their hrefs are plain `?tab=code&file=…` query URLs, so cmd/middle-click
+ * their hrefs are plain `?file=…` query URLs, so cmd/middle-click
  * and open-in-new-tab still work natively.
  */
 export function MarkdownView({ html, className }: MarkdownViewProps) {

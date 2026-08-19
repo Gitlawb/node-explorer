@@ -579,6 +579,23 @@ a { text-underline-offset: 0.2em; }
 .dark .tok-fn   { color: #d2a8ff; }
 .dark .tok-prop { color: #79c0ff; }
 .dark .tok-punc { color: #f0f6fc; }
+
+/* Source viewer: defer off-screen line paint for long files while retaining the
+   full DOM for #L10 / #L10-L25 anchors and browser find. */
+.code-table .code-line {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 22px;
+}
+.code-table .line-hl {
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+}
+.code-table .line-hl > td:first-child {
+  box-shadow: inset 2px 0 0 var(--color-accent);
+}
+.code-table .line-hl a {
+  color: var(--color-accent);
+}
+
 /* Theme switch (Magic UI AnimatedThemeToggler): the component drives the
    clip-path wipe itself, so the browser's default cross-fade on these
    pseudo-elements is disabled to keep the two from fighting. */

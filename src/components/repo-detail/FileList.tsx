@@ -1,3 +1,4 @@
+import { Link, type To } from 'react-router-dom';
 import { Table } from '../register/controls';
 import { Folder, FolderOpen } from 'lucide-react';
 import type { RepoFile } from '../../types/repo';
@@ -5,7 +6,7 @@ import { getFileIcon } from '../../lib/fileIcons';
 
 interface FileListProps {
   files: RepoFile[];
-  onClickEntry?: (entry: RepoFile) => void;
+  getEntryTo: (entry: RepoFile) => To;
 }
 
 const DIR_ICONS = new Map<string, { icon: typeof Folder; color: string }>([
@@ -37,15 +38,15 @@ function FileIcon({ name, type }: { name: string; type: string }) {
     const dirIcon = DIR_ICONS.get(name);
     const Icon = dirIcon?.icon ?? Folder;
     const color = dirIcon?.color ?? '#7c8a9a';
-    return <Icon size={15} className="flex-shrink-0" style={{ color }} />;
+    return <Icon size={15} aria-hidden="true" className="flex-shrink-0" style={{ color }} />;
   }
 
   const info = getFileIcon(name);
   const Icon = info.icon;
-  return <Icon size={15} className="flex-shrink-0" style={{ color: info.color }} />;
+  return <Icon size={15} aria-hidden="true" className="flex-shrink-0" style={{ color: info.color }} />;
 }
 
-export function FileList({ files, onClickEntry }: FileListProps) {
+export function FileList({ files, getEntryTo }: FileListProps) {
   if (files.length === 0) {
     return (
       <div className="flex items-center justify-center py-14">
@@ -75,28 +76,30 @@ export function FileList({ files, onClickEntry }: FileListProps) {
                 <Table.Row
                   key={file.name}
                   id={file.name}
-                  onAction={onClickEntry ? () => onClickEntry(file) : undefined}
-                  className={onClickEntry ? 'cursor-pointer hover:bg-surface-secondary transition-colors' : 'cursor-default'}
+                  className="group"
                 >
-                  {/* 24px of vertical padding per row put twelve entries well
-                      past a screen and made a short tree feel like a long one.
-                      A file list is for scanning, so the row is sized to its
-                      content: ~34px, close to the density a forge uses. */}
-                  <Table.Cell className="px-4 sm:px-5 py-1.5">
-                    {/* A fixed line box on both cells. The size column is set
-                        in mono, whose taller line box made rows carrying a size
-                        3px deeper than the directory rows that carry none. */}
-                    <div className="flex h-5 items-center gap-2.5">
-                      <FileIcon name={file.name} type={file.type} />
-                      <span className="truncate text-[13.5px] leading-5 text-foreground">{file.name}</span>
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell className="px-4 sm:px-5 py-1.5 text-right">
-                    {file.size && file.size !== '—' ? (
-                      <span className="block h-5 whitespace-nowrap text-[12px] leading-5 tabular-nums font-mono text-muted">
-                        {file.size}
+                  <Table.Cell colSpan={2} className="p-0">
+                    <Link
+                      to={getEntryTo(file)}
+                      data-row-link="true"
+                      className="grid min-h-8 grid-cols-[minmax(0,1fr)_6rem] sm:grid-cols-[minmax(0,1fr)_7rem]
+                        items-center hover:bg-surface-secondary transition-colors
+                        focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-[-2px]"
+                    >
+                      {/* A fixed line box keeps file and directory rows at the
+                          same density while the link makes the whole row one
+                          keyboard- and modifier-clickable navigation target. */}
+                      <span className="flex h-5 min-w-0 items-center gap-2.5 px-4 sm:px-5">
+                        <FileIcon name={file.name} type={file.type} />
+                        <span translate="no" className="truncate text-[13.5px] leading-5 text-foreground">
+                          {file.name}
+                        </span>
                       </span>
-                    ) : null}
+                      <span className="h-5 whitespace-nowrap px-4 sm:px-5 text-right text-[12px]
+                        leading-5 tabular-nums font-mono text-muted">
+                        {file.size && file.size !== '—' ? file.size : ''}
+                      </span>
+                    </Link>
                   </Table.Cell>
                 </Table.Row>
               ))}

@@ -246,9 +246,12 @@ export const MAX_INLINE_BYTES = 1_048_576; // 1 MB
 // render SVG in <img> without an image/svg+xml content-type.
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'];
 
+export function encodeRepoPath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
 export function blobUrl(owner: string, name: string, path: string): string {
-  const encoded = path.split('/').map(encodeURIComponent).join('/');
-  return repoPath(owner, name, `/blob/${encoded}`);
+  return repoPath(owner, name, `/blob/${encodeRepoPath(path)}`);
 }
 
 export type BlobKind = 'text' | 'image' | 'binary' | 'toolarge';
@@ -318,7 +321,10 @@ export async function fetchSubtree(
   subpath: string,
   signal?: AbortSignal,
 ): Promise<ApiTreeEntry[]> {
-  const data = await getJson<{ entries?: ApiTreeEntry[] }>(repoPath(owner, name, `/tree/${subpath}`), signal);
+  const data = await getJson<{ entries?: ApiTreeEntry[] }>(
+    repoPath(owner, name, `/tree/${encodeRepoPath(subpath)}`),
+    signal,
+  );
   return data.entries ?? [];
 }
 

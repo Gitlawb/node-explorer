@@ -10,6 +10,7 @@ import {
   mapTreeEntriesToFiles,
   mapApiRepo,
   fetchRepos,
+  fetchSubtree,
   getBlob,
   blobUrl,
   MAX_INLINE_BYTES,
@@ -204,6 +205,23 @@ describe('blobUrl', () => {
   it('encodes each path segment but keeps slashes', () => {
     expect(blobUrl('alice', 'repo', 'docs/a b.md')).toBe(
       '/api/v1/repos/alice/repo/blob/docs/a%20b.md',
+    );
+  });
+});
+
+describe('fetchSubtree', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('encodes each directory path segment before requesting the tree', async () => {
+    const mock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ entries: [] })));
+    vi.stubGlobal('fetch', mock);
+
+    await fetchSubtree('alice', 'repo', 'docs/API #1');
+
+    expect(mock.mock.calls[0][0]).toBe(
+      '/api/v1/repos/alice/repo/tree/docs/API%20%231',
     );
   });
 });

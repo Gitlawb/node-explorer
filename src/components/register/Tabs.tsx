@@ -139,7 +139,10 @@ function Panel({
       id={`${baseId}-panel-${id}`}
       aria-labelledby={`${baseId}-tab-${id}`}
       tabIndex={0}
-      className={cn('outline-none', className)}
+      className={cn(
+        'focus:outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2',
+        className,
+      )}
     >
       {children}
     </div>

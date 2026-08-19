@@ -1,7 +1,11 @@
 import type {
   ButtonHTMLAttributes,
+  HTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
+  TableHTMLAttributes,
+  TdHTMLAttributes,
+  ThHTMLAttributes,
 } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -161,27 +165,35 @@ export function Table({ children, className }: Slot) {
   );
 }
 
-Table.ScrollContainer = function ScrollContainer({ children, className }: Slot) {
-  return <div className={cn('w-full overflow-x-auto', className)}>{children}</div>;
+Table.ScrollContainer = function ScrollContainer({
+  children,
+  className,
+  ...rest
+}: HTMLAttributes<HTMLDivElement>) {
+  return <div {...rest} className={cn('w-full overflow-x-auto', className)}>{children}</div>;
 };
 
-Table.Content = function Content({ children, className }: Slot) {
-  return <table className={cn('w-full border-collapse text-left', className)}>{children}</table>;
+Table.Content = function Content({ children, className, ...rest }: TableHTMLAttributes<HTMLTableElement>) {
+  return <table {...rest} className={cn('w-full border-collapse text-left', className)}>{children}</table>;
 };
 
-Table.Header = function Header({ children, className }: Slot) {
-  return <thead className={cn('border-b border-border', className)}>{children}</thead>;
+Table.Header = function Header({ children, className, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
+  return (
+    <thead {...rest} className={cn('border-b border-border', className)}>
+      <tr>{children}</tr>
+    </thead>
+  );
 };
 
-Table.Body = function Body({ children, className }: Slot) {
-  return <tbody className={className}>{children}</tbody>;
+Table.Body = function Body({ children, className, ...rest }: HTMLAttributes<HTMLTableSectionElement>) {
+  return <tbody {...rest} className={className}>{children}</tbody>;
 };
 
 Table.Row = function Row({
   children,
   className,
   ...rest
-}: Slot & { onClick?: () => void; [key: string]: unknown }) {
+}: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
       {...rest}
@@ -195,9 +207,10 @@ Table.Row = function Row({
   );
 };
 
-Table.Column = function Column({ children, className }: Slot) {
+Table.Column = function Column({ children, className, ...rest }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
+      {...rest}
       scope="col"
       className={cn(
         'px-4 py-2 text-[12px] font-semibold text-muted whitespace-nowrap align-bottom',
@@ -209,7 +222,6 @@ Table.Column = function Column({ children, className }: Slot) {
   );
 };
 
-Table.Cell = function Cell({ children, className }: Slot) {
-  return <td className={cn('px-4 py-2 text-[13px] align-middle', className)}>{children}</td>;
+Table.Cell = function Cell({ children, className, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
+  return <td {...rest} className={cn('px-4 py-2 text-[13px] align-middle', className)}>{children}</td>;
 };
-

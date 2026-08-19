@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams, type To } from 'react-router-dom';
 import type { Repository, RepoFile } from '../../types/repo';
 import { FileList } from './FileList';
 import { FileViewer } from './FileViewer';
@@ -11,7 +11,6 @@ import { CertList } from './CertList';
 import { ReadmePanel } from './ReadmePanel';
 import { Pill } from '../ui/Pill';
 import { Tabs } from '../register/Tabs';
-import { Button } from '../register/controls';
 import {
   getBlob,
   fetchSubtree,
@@ -23,6 +22,7 @@ import {
 } from '../../lib/api';
 import type { ApiIssue, ApiPull, ApiRepoEvent, ApiCert, BlobResult } from '../../lib/api';
 import { normalizeRepoPath, isMarkdownPath } from '../../lib/lang';
+import { buildRepoCodeSearch, type RepoCodeTarget } from '../../lib/repoNavigation';
 import { useShortcut } from '../../hooks/useShortcuts';
 
 type LazyTabId = 'pulls' | 'issues' | 'events' | 'certs';
@@ -101,6 +101,7 @@ interface BlobState {
 }
 
 export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailTabsProps) {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ── URL-driven code navigation ──────────────────────────────────────────
@@ -122,6 +123,21 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
         }
         return next;
       });
+    },
+    [setSearchParams],
+  );
+
+  const codeTo = useCallback(
+    (target: RepoCodeTarget = {}): To => ({
+      pathname: location.pathname,
+      search: buildRepoCodeSearch(searchParams, target),
+    }),
+    [location.pathname, searchParams],
+  );
+
+  const navigateCode = useCallback(
+    (target: RepoCodeTarget = {}) => {
+      setSearchParams(prev => new URLSearchParams(buildRepoCodeSearch(prev, target)));
     },
     [setSearchParams],
   );
@@ -188,6 +204,11 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
   const blobKey = filePath ? `${repo.id}:${filePath}:${force ? 1 : 0}` : null;
   const blobLoading = !!blobKey && blob?.key !== blobKey;
 
+  const retryBlob = useCallback(() => {
+    if (!blobKey) return;
+    setBlob(current => current?.key === blobKey ? null : current);
+  }, [blobKey]);
+
   useEffect(() => {
     if (!blobKey || !filePath) return;
     if (blob?.key === blobKey) return;
@@ -243,18 +264,14 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
   }, [value, repo.id, loadLazyTab]);
 
   // ── Navigation handlers ─────────────────────────────────────────────────
-  const handleClickEntry = (entry: RepoFile) => {
+  const getEntryTo = useCallback((entry: RepoFile): To => {
     const fullPath = treePath ? `${treePath}/${entry.name}` : entry.name;
-    if (entry.type === 'dir') {
-      setParams({ path: fullPath, file: null, view: null, force: null });
-    } else {
-      setParams({ path: treePath || null, file: fullPath, view: null, force: null });
-    }
-  };
+    return entry.type === 'dir' ? codeTo({ path: fullPath }) : codeTo({ file: fullPath });
+  }, [codeTo, treePath]);
 
-  const goToDir = (dir: string) => {
-    setParams({ path: dir || null, file: null, view: null, force: null });
-  };
+  const goToDir = useCallback((dir: string) => {
+    navigateCode({ path: dir });
+  }, [navigateCode]);
 
   // Backspace walks up: open file → its directory; directory → parent
   useShortcut('Backspace', e => {
@@ -316,51 +333,47 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
       </Tabs.ListContainer>
 
       <Tabs.Panel id="code" className="">
-        <div className="flex items-center gap-1.5 mb-3 px-0.5 flex-wrap min-h-7">
-          {showBreadcrumb && (
-            <>
-              <Button
-                variant="tertiary"
-                size="sm"
-                onPress={() => goToDir('')}
-                className="text-[12px] h-auto min-h-0 px-1"
-              >
-                root
-              </Button>
-              {crumbSegments.map((seg, idx) => {
-                const isLast = idx === crumbSegments.length - 1 && !filePath;
-                return (
-                  <Fragment key={idx}>
-                    <span className="text-[12px] text-muted">/</span>
-                    {isLast ? (
-                      <span className="text-[12px] text-foreground">{seg}</span>
-                    ) : (
-                      <Button
-                        variant="tertiary"
-                        size="sm"
-                        onPress={() => goToDir(crumbSegments.slice(0, idx + 1).join('/'))}
-                        className="text-[12px] h-auto min-h-0 px-1"
-                      >
-                        {seg}
-                      </Button>
-                    )}
-                  </Fragment>
-                );
-              })}
-              {filePath && (
-                <>
-                  <span className="text-[12px] text-muted">/</span>
-                  <span className="text-[12px] text-foreground">{filePath.split('/').pop()}</span>
-                </>
-              )}
-            </>
-          )}
-          {onOpenFinder && (
-            <Pill onClick={onOpenFinder} className="ml-auto" aria-label="find file (t)">
-              find file · t
-            </Pill>
-          )}
-        </div>
+        {!filePath && (
+          <div className="flex items-center gap-1.5 mb-3 px-0.5 flex-wrap min-h-7">
+            {showBreadcrumb && (
+              <>
+                <Link
+                  to={codeTo()}
+                  className="rounded-[var(--radius-control)] px-1 text-[12px] text-muted
+                    hover:text-foreground transition-colors"
+                >
+                  root
+                </Link>
+                {crumbSegments.map((seg, idx) => {
+                  const isLast = idx === crumbSegments.length - 1;
+                  const segmentPath = crumbSegments.slice(0, idx + 1).join('/');
+                  return (
+                    <Fragment key={segmentPath}>
+                      <span aria-hidden="true" className="text-[12px] text-muted">/</span>
+                      {isLast ? (
+                        <span translate="no" className="text-[12px] text-foreground">{seg}</span>
+                      ) : (
+                        <Link
+                          to={codeTo({ path: segmentPath })}
+                          translate="no"
+                          className="rounded-[var(--radius-control)] px-1 text-[12px] text-muted
+                            hover:text-foreground transition-colors"
+                        >
+                          {seg}
+                        </Link>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </>
+            )}
+            {onOpenFinder && (
+              <Pill onClick={onOpenFinder} className="ml-auto" aria-label="find file (t)">
+                find file · t
+              </Pill>
+            )}
+          </div>
+        )}
 
         {filePath ? (
           <FileViewer
@@ -372,9 +385,11 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
             error={blob?.key === blobKey ? blob.error : null}
             view={isMarkdownPath(filePath) ? view : 'code'}
             headSha={repo.commits[0]?.hash}
-            onBack={() => goToDir(crumbDir)}
+            backTo={codeTo({ path: crumbDir })}
             onSetView={v => setParams({ view: v === 'code' ? 'code' : null })}
             onForce={() => setParams({ force: '1' })}
+            onRetry={retryBlob}
+            onOpenFinder={onOpenFinder}
           />
         ) : dirError ? (
           <TabError
@@ -389,7 +404,7 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
           <TabLoading />
         ) : (
           <>
-            <FileList files={currentEntries} onClickEntry={handleClickEntry} />
+            <FileList files={currentEntries} getEntryTo={getEntryTo} />
             <ReadmePanel
               key={`${repo.id}:${treePath}`}
               owner={repo.owner}

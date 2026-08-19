@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Link, type To } from 'react-router-dom';
 import type { BlobResult } from '../../lib/api';
 import { shortSha } from '../../lib/api';
 import { getShikiLangFromPath, isMarkdownPath } from '../../lib/lang';
@@ -23,15 +24,79 @@ interface FileViewerProps {
   view: 'preview' | 'code';
   /** HEAD commit hash — shown as context; the blob API always serves HEAD */
   headSha?: string;
-  onBack: () => void;
+  backTo: To;
   onSetView: (v: 'preview' | 'code') => void;
   onForce: () => void;
+  onRetry: () => void;
+  onOpenFinder?: () => void;
 }
 
 function CenteredPanel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       {children}
+    </div>
+  );
+}
+
+function FileLoading() {
+  return (
+    <div className="p-4 sm:p-6" aria-busy="true" aria-label="loading file">
+      <div className="space-y-3">
+        <Skeleton className="h-3 w-2/5" />
+        <Skeleton className="h-3 w-4/5" />
+        <Skeleton className="h-3 w-3/5" />
+        <Skeleton className="h-3 w-5/6" />
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="h-3 w-3/4" />
+      </div>
+    </div>
+  );
+}
+
+function ImagePreview({ src, alt }: { src: string; alt: string }) {
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const probe = new window.Image();
+    probe.onload = () => {
+      setDimensions({ width: probe.naturalWidth, height: probe.naturalHeight });
+    };
+    probe.onerror = () => setFailed(true);
+    probe.src = src;
+    return () => {
+      probe.onload = null;
+      probe.onerror = null;
+    };
+  }, [src]);
+
+  if (failed) {
+    return (
+      <CenteredPanel>
+        <p className="m-0 text-[13px] text-muted">Image preview unavailable.</p>
+        <RawLink href={src} aria-label="open raw image">open raw ↗</RawLink>
+      </CenteredPanel>
+    );
+  }
+
+  if (!dimensions) {
+    return (
+      <div className="p-6" aria-busy="true" aria-label="loading image preview">
+        <Skeleton className="mx-auto aspect-video w-full max-w-2xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 text-center">
+      <img
+        src={src}
+        alt={alt}
+        width={dimensions.width}
+        height={dimensions.height}
+        className="inline-block h-auto max-w-full border border-separator"
+      />
     </div>
   );
 }
@@ -64,6 +129,7 @@ function MarkdownPreview({ owner, name, path, content }: {
   content: string;
 }) {
   const [html, setHtml] = useState<string | null>(null);
+  const [renderFailed, setRenderFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +138,12 @@ function MarkdownPreview({ owner, name, path, content }: {
     import('../../lib/markdown')
       .then(({ renderMarkdown }) => renderMarkdown(content, { owner, name, basePath }))
       .then(result => {
-        if (!cancelled) setHtml(result);
+        if (cancelled) return;
+        setRenderFailed(false);
+        setHtml(result);
+      })
+      .catch(() => {
+        if (!cancelled) setRenderFailed(true);
       });
     return () => { cancelled = true; };
   }, [owner, name, path, content]);
@@ -88,6 +159,13 @@ function MarkdownPreview({ owner, name, path, content }: {
 
   const headings = useMemo(() => (html ? extractTocHeadings(html) : []), [html]);
 
+  if (renderFailed) {
+    return (
+      <div className="p-6 text-center">
+        <p className="m-0 text-[13px] text-muted">Preview unavailable. Open the code view instead.</p>
+      </div>
+    );
+  }
   if (html === null) {
     return (
       <div className="p-4 sm:p-6 space-y-3" aria-busy="true">
@@ -106,21 +184,48 @@ function MarkdownPreview({ owner, name, path, content }: {
 }
 
 export function FileViewer({
-  owner, name, path, blob, loading, error, view, headSha, onBack, onSetView, onForce,
+  owner,
+  name,
+  path,
+  blob,
+  loading,
+  error,
+  view,
+  headSha,
+  backTo,
+  onSetView,
+  onForce,
+  onRetry,
+  onOpenFinder,
 }: FileViewerProps) {
+  const titleId = useId();
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const basename = path.split('/').pop() ?? path;
   const markdown = isMarkdownPath(path);
   const lang = getShikiLangFromPath(path);
-  const lineCount = blob?.kind === 'text' && blob.content !== undefined
-    ? blob.content.split('\n').length
-    : null;
+  const lineCount = useMemo(
+    () => blob?.kind === 'text' && blob.content !== undefined
+      ? blob.content.split('\n').length
+      : null,
+    [blob],
+  );
   const showsCode = blob?.kind === 'text' && !(markdown && view === 'preview');
 
   // Soft-wrap preference persists across sessions
-  const [wrap, setWrap] = useState(() => localStorage.getItem('code-wrap') === '1');
+  const [wrap, setWrap] = useState(() => {
+    try {
+      return localStorage.getItem('code-wrap') === '1';
+    } catch {
+      return false;
+    }
+  });
   const toggleWrap = () => {
     setWrap(w => {
-      localStorage.setItem('code-wrap', w ? '0' : '1');
+      try {
+        localStorage.setItem('code-wrap', w ? '0' : '1');
+      } catch {
+        // Storage can be unavailable in privacy-restricted contexts.
+      }
       return !w;
     });
   };
@@ -129,69 +234,138 @@ export function FileViewer({
   // no ref/sha parameter — it always serves HEAD — so a true SHA-pinned
   // permalink cannot resolve; copying the live URL is the honest option.
   const [linkCopied, setLinkCopied] = useState(false);
-  useShortcut('y', () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
+  const copyResetRef = useRef<number | null>(null);
+  const copyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
       setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 1600);
-    }).catch(() => {});
+      if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current);
+      copyResetRef.current = window.setTimeout(() => setLinkCopied(false), 1600);
+    } catch {
+      // Clipboard access may be denied outside a secure browser context.
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current);
+  }, []);
+
+  useShortcut('y', e => {
+    e.preventDefault();
+    void copyLink();
   });
 
+  // File navigation replaces the row that held keyboard focus. Move focus to
+  // the new file title without changing the reader's scroll position.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => titleRef.current?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(frame);
+  }, [path]);
+
   return (
-    <div className="overflow-hidden border border-border">
-      {/* Header */}
-      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 min-h-10 py-1.5 border-b border-border bg-surface flex-wrap">
-        <Button
-          variant="tertiary"
-          size="sm"
-          onPress={onBack}
-          className="text-[12px] font-medium h-auto min-h-0 px-1"
-        >
-          ← back
-        </Button>
-        <span className="text-muted text-[12px] flex-shrink-0">/</span>
-        <span className="text-[12px] sm:text-[13px] text-foreground truncate min-w-0">{path}</span>
-        {lang && !markdown && <MicroLabel className="flex-shrink-0 max-sm:hidden">{lang}</MicroLabel>}
-        {headSha && (
-          <span className="text-[11px] text-muted flex-shrink-0 max-md:hidden" title="content served at HEAD">
-            @ {shortSha(headSha)}
-          </span>
-        )}
+    <section aria-labelledby={titleId} className="scroll-mt-20 border border-border">
+      {/* The toolbar is deliberately two-tiered: path context never competes
+          with actions, and mobile wraps actions without breaking the filename. */}
+      <div className="sticky top-14 z-20 border-b border-border bg-surface">
+        <div className="flex min-h-10 min-w-0 items-center gap-2 px-4 py-1.5 sm:gap-3 sm:px-5">
+          <Link
+            to={backTo}
+            className="shrink-0 rounded-[var(--radius-control)] px-1 text-[12px] font-medium text-muted
+              hover:text-foreground transition-colors"
+          >
+            ← folder
+          </Link>
+          <span aria-hidden="true" className="shrink-0 text-[12px] text-muted">/</span>
+          <h2
+            ref={titleRef}
+            id={titleId}
+            tabIndex={-1}
+            translate="no"
+            title={path}
+            className="m-0 min-w-0 truncate text-[12px] font-medium text-foreground
+              focus-visible:!outline-none sm:text-[13px]"
+          >
+            {path}
+          </h2>
+          {lang && !markdown && <MicroLabel className="shrink-0 max-sm:hidden">{lang}</MicroLabel>}
+          {headSha && (
+            <span
+              translate="no"
+              className="shrink-0 text-[11px] text-muted max-md:hidden"
+              title="content served at HEAD"
+            >
+              @ {shortSha(headSha)}
+            </span>
+          )}
+        </div>
 
-        <span className="flex-1" />
+        <div className="flex min-h-10 items-center gap-3 border-t border-separator px-4 py-1.5 sm:px-5">
+          <span className="shrink-0 text-[11px] tabular-nums text-muted" aria-live="polite">
+            {loading
+              ? 'loading…'
+              : blob
+                ? lineCount !== null
+                  ? `${lineCount.toLocaleString()} lines · ${blob.sizeLabel}`
+                  : blob.sizeLabel
+                : ''}
+          </span>
 
-        <span aria-live="polite" className="flex-shrink-0">
-          {linkCopied && <span className="text-[11px] text-accent">link copied</span>}
-        </span>
-        {blob && (
-          <span className="text-[11px] tabular-nums text-muted flex-shrink-0 max-sm:hidden">
-            {lineCount !== null ? `${lineCount.toLocaleString()} lines · ${blob.sizeLabel}` : blob.sizeLabel}
-          </span>
-        )}
-        {showsCode && (
-          <Pill onClick={toggleWrap} active={wrap} aria-pressed={wrap}>wrap</Pill>
-        )}
-        {markdown && blob?.kind === 'text' && (
-          <span role="group" aria-label="view mode" className="flex gap-1 flex-shrink-0">
-            <Pill onClick={() => onSetView('preview')} active={view === 'preview'}>preview</Pill>
-            <Pill onClick={() => onSetView('code')} active={view === 'code'}>code</Pill>
-          </span>
-        )}
-        {blob?.kind === 'text' && blob.content !== undefined && (
-          <CopyButton value={blob.content} label="raw" className="flex-shrink-0" />
-        )}
-        {blob && <RawLink href={blob.url} aria-label="open raw file">raw ↗</RawLink>}
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+            {showsCode && (
+              <Pill onClick={toggleWrap} active={wrap} aria-pressed={wrap}>wrap</Pill>
+            )}
+            {markdown && blob?.kind === 'text' && (
+              <span role="group" aria-label="view mode" className="flex shrink-0 gap-1">
+                <Pill onClick={() => onSetView('preview')} active={view === 'preview'}>preview</Pill>
+                <Pill onClick={() => onSetView('code')} active={view === 'code'}>code</Pill>
+              </span>
+            )}
+            {blob?.kind === 'text' && blob.content !== undefined && (
+              <CopyButton
+                value={blob.content}
+                label="contents"
+                srLabel="copy file contents"
+                className="shrink-0"
+              />
+            )}
+            <Button
+              variant="tertiary"
+              size="sm"
+              onPress={copyLink}
+              className="shrink-0"
+              aria-label="copy link to file"
+            >
+              <span aria-live="polite">{linkCopied ? 'link copied' : 'copy link'}</span>
+            </Button>
+            {blob && <RawLink href={blob.url} aria-label="open raw file">raw ↗</RawLink>}
+            {onOpenFinder && (
+              <Pill onClick={onOpenFinder} className="shrink-0" aria-label="find file (t)">
+                find file · t
+              </Pill>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Body */}
-      {loading && (
-        <div className="flex items-center justify-center py-16" aria-busy="true">
-          <p className="m-0 text-[13px] text-muted animate-pulse">loading…</p>
-        </div>
-      )}
+      {loading && <FileLoading />}
 
       {error && !loading && (
         <CenteredPanel>
-          <p className="m-0 text-[13px] text-danger">{error}</p>
+          <div>
+            <p className="m-0 text-[13px] font-medium text-danger">couldn’t load {basename}</p>
+            <p className="m-0 mt-1 text-[12px] text-muted">{error}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onPress={onRetry}>retry</Button>
+            <Link
+              to={backTo}
+              className="inline-flex h-7 items-center rounded-[var(--radius-control)] px-2.5
+                text-[12px] text-muted hover:text-foreground transition-colors"
+            >
+              back to folder
+            </Link>
+          </div>
         </CenteredPanel>
       )}
 
@@ -203,14 +377,7 @@ export function FileViewer({
             <CodeView key={path} content={blob.content} path={path} wrap={wrap} />
           )
         ) : blob.kind === 'image' ? (
-          <div className="p-6 text-center">
-            <img
-              src={blob.url}
-              alt={basename}
-              loading="lazy"
-              className="inline-block max-w-full border border-separator"
-            />
-          </div>
+          <ImagePreview key={blob.url} src={blob.url} alt={basename} />
         ) : blob.kind === 'binary' ? (
           <CenteredPanel>
             <p className="m-0 text-[13px] text-muted">binary file · {blob.sizeLabel}</p>
@@ -226,6 +393,6 @@ export function FileViewer({
           </CenteredPanel>
         )
       )}
-    </div>
+    </section>
   );
 }
