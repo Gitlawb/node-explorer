@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useId,
+  useLayoutEffect,
   useRef,
   type ReactNode,
   type KeyboardEvent,
@@ -50,6 +51,47 @@ function ListContainer({ children, className }: { children: ReactNode; className
 
 function List({ children, ...rest }: { children: ReactNode; 'aria-label'?: string }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const { selected } = useTabs();
+
+  // Keep the selected tab inside the strip.
+  //
+  // The strip scrolls horizontally once the tabs outrun their box, which on a
+  // 375px screen happens at six tabs — 440px of tabs in 343px. Arriving on
+  // ?tab=events then left the selected tab off the right edge with the strip
+  // still at scrollLeft 0, so the reader saw the first tabs and no indication
+  // of which one they were on.
+  //
+  // Only the container is scrolled, never the page: scrollIntoView would also
+  // move the document vertically and jump the reader past the repository
+  // header they had just landed on.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const reveal = () => {
+      const tab = list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+      if (!tab) return;
+      const listBox = list.getBoundingClientRect();
+      const tabBox = tab.getBoundingClientRect();
+      const margin = 12;
+      if (tabBox.left < listBox.left) {
+        list.scrollLeft -= listBox.left - tabBox.left + margin;
+      } else if (tabBox.right > listBox.right) {
+        list.scrollLeft += tabBox.right - listBox.right + margin;
+      }
+    };
+
+    reveal();
+
+    // Re-run when the strip resizes. Each tab carries a count that arrives
+    // after its own fetch, so a tab grows from "certs" to "certs 1" a moment
+    // after selection — enough to push a tab revealed on the first pass back
+    // over the edge.
+    const observer = new ResizeObserver(reveal);
+    observer.observe(list);
+    for (const child of Array.from(list.children)) observer.observe(child);
+    return () => observer.disconnect();
+  }, [selected]);
 
   // Roving arrow keys across the tab strip, wrapping at both ends.
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {

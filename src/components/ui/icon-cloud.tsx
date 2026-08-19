@@ -355,7 +355,11 @@ export function IconCloud({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        className="rounded-lg"
+        // The width/height attributes size the drawing buffer, not the box.
+        // Left unconstrained the canvas lays out at a fixed 400px and runs off
+        // the side of a phone; these let CSS scale it down while the buffer,
+        // and so the rendering, stays 400x400.
+        className="h-auto max-w-full rounded-lg"
         aria-label="Interactive 3D Icon Cloud"
         role="img"
       />

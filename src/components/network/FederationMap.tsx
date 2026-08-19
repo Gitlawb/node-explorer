@@ -47,7 +47,8 @@ function NodeChip({
         {lead ? <Server size={13} /> : <Radio size={13} />}
       </span>
       <span className="text-[12.5px] font-medium text-foreground whitespace-nowrap">
-        {snap.node.label}
+        <span className="sm:hidden">{snap.node.label.split('.')[0]}</span>
+        <span className="hidden sm:inline">{snap.node.label}</span>
       </span>
       {snap.stats && (
         <span className="text-[11px] text-muted tabular whitespace-nowrap">
@@ -74,11 +75,11 @@ export function FederationMap({ snapshots }: { snapshots: NodeSnapshot[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative flex min-h-[240px] w-full items-center justify-between gap-8 px-2 py-8 sm:px-8"
+      className="relative flex min-h-[200px] sm:min-h-[240px] w-full items-center justify-between gap-3 sm:gap-8 px-0 sm:px-8 py-6 sm:py-8"
     >
       <NodeChip snap={origin} innerRef={originRef} lead />
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2.5 sm:gap-4">
         {shown.map((s, i) => (
           <NodeChip key={s.node.id} snap={s} innerRef={peerRefs[i]} />
         ))}

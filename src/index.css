@@ -379,9 +379,22 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
 
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -1px;
+/* The default focus ring MUST live in @layer base.
+
+   Unlayered, it beat every Tailwind focus utility, because unlayered CSS wins
+   over layered CSS regardless of specificity — the same rule that broke the
+   border-color reset above. A control that had been given its own focus
+   treatment got this one instead: the command palette drew a hard 2px box,
+   inset by a pixel, around a search field that sits flush inside a rounded
+   panel and already shows focus with its caret.
+
+   Layered, this stays the default for anything that does not style its own
+   focus, and a component that does style it now wins. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
+  }
 }
 
 a { text-underline-offset: 0.2em; }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Navigate, useParams, useLocation } from 'react-router-dom';
 
 import { DocArticle } from '../components/docs/DocArticle';
@@ -32,6 +32,7 @@ interface DocState {
 export default function DocsPage() {
   const { slug = 'quickstart' } = useParams();
   const { hash } = useLocation();
+  const docNavRef = useRef<HTMLElement>(null);
   const [loaded, setLoaded] = useState<DocState>({ slug: null, html: null, error: null });
 
   useEffect(() => {
@@ -93,6 +94,23 @@ export default function DocsPage() {
     document.getElementById(id)?.scrollIntoView({ block: 'start' });
   }, [loaded.slug, loaded.html, slug, hash]);
 
+  // Keep the current document visible in the section nav.
+  //
+  // Below lg the nav is a horizontal strip, and four labels come to 419px in
+  // 351px of room. Opening /docs/node therefore left "Run a node" past the
+  // right edge with the strip unscrolled, so the reader could not see which
+  // document they were in. Only the strip scrolls, never the page.
+  useLayoutEffect(() => {
+    const nav = docNavRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]') ??
+      nav?.querySelector<HTMLElement>('a[class*="bg-foreground"]');
+    if (!nav || !active) return;
+    const navBox = nav.getBoundingClientRect();
+    const box = active.getBoundingClientRect();
+    if (box.left < navBox.left) nav.scrollLeft -= navBox.left - box.left + 12;
+    else if (box.right > navBox.right) nav.scrollLeft += box.right - navBox.right + 12;
+  }, [slug]);
+
   const headings = useMemo(
     () => (state.html ? extractTocHeadings(state.html) : []),
     [state.html],
@@ -114,6 +132,7 @@ export default function DocsPage() {
           <div className="lg:sticky lg:top-20">
             <p className="m-0 mb-3 text-[11.5px] text-muted">Documentation</p>
             <nav
+              ref={docNavRef}
               aria-label="documentation"
               className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0"
             >
@@ -123,7 +142,8 @@ export default function DocsPage() {
                   to={`/docs/${d.slug}`}
                   className={({ isActive }) =>
                     cn(
-                      'block whitespace-nowrap rounded-[var(--radius-control)] px-3 py-1.5 text-[13.5px] transition-colors',
+                      'flex items-center whitespace-nowrap rounded-[var(--radius-control)] px-3.5 sm:px-3 text-[13.5px] transition-colors',
+                      'h-10 sm:h-auto sm:py-1.5',
                       isActive
                         ? 'bg-foreground font-medium text-background'
                         : 'text-muted hover:bg-surface-secondary hover:text-foreground',

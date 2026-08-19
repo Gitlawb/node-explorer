@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Menu, X, Search } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { Logo } from '../ui/Logo';
 import { useNodeStatus } from '../../hooks/useNodeStatus';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { cn } from '../../lib/utils';
+import { MobileNavDrawer } from './MobileNavDrawer';
 import { modifierKeyLabel } from '../../lib/platform';
 
 const NAV_LINKS = [
@@ -57,7 +58,7 @@ export default function TopBar() {
       <div className="mx-auto flex h-14 max-w-[1280px] items-center gap-2 sm:gap-6 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
           <Logo className="h-[18px] w-auto shrink-0 text-foreground" />
-          <span className="hidden sm:inline text-[15px] font-semibold tracking-tight text-foreground">
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">
             gitlawb
           </span>
         </Link>
@@ -123,7 +124,7 @@ export default function TopBar() {
             title={`Search — ${paletteHint}`}
             aria-label={`Open command palette (${paletteHint})`}
             aria-keyshortcuts="Meta+K Control+K"
-            className="inline-flex h-8 w-8 items-center justify-center
+            className="inline-flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center
               text-muted transition-colors hover:text-foreground"
           >
             <Search size={17} />
@@ -136,51 +137,21 @@ export default function TopBar() {
             aria-label="Navigation menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(o => !o)}
-            className="md:hidden inline-flex h-8 w-8 items-center justify-center text-muted hover:text-foreground"
+            className="md:hidden inline-flex h-10 w-10 items-center justify-center text-muted hover:text-foreground"
           >
             {menuOpen ? <X size={17} /> : <Menu size={17} />}
           </button>
         </div>
       </div>
 
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.nav
-            key="mobile-nav"
-            initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
-            animate={reduce ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
-            transition={{ duration: reduce ? 0 : 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden overflow-hidden border-b border-border bg-background"
-          >
-            <ul className="m-0 list-none px-4 sm:px-6 py-1">
-              {NAV_LINKS.map(({ to, label, end }) => (
-                <li key={to}>
-                  <Link
-                    to={to}
-                    aria-current={isActive(to, end) ? 'page' : undefined}
-                    className={cn(
-                      'flex items-center justify-between py-2.5 border-b border-separator',
-                      'text-[14px] transition-colors',
-                      isActive(to, end) ? 'text-foreground' : 'text-muted',
-                    )}
-                  >
-                    {label}
-                    {isActive(to, end) && (
-                      <span className="h-px w-5 bg-foreground" aria-hidden="true" />
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {stats && (
-              <p className="m-0 px-4 sm:px-6 py-3 text-[12.5px] tabular text-muted">
-                {stats.repos.toLocaleString()} repos · {stats.agents.toLocaleString()} agents
-              </p>
-            )}
-          </motion.nav>
-        )}
-      </AnimatePresence>
+      <MobileNavDrawer
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        links={NAV_LINKS}
+        isActive={isActive}
+        node={node}
+        stats={stats}
+      />
     </header>
   );
 }

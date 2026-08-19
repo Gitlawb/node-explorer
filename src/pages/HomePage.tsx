@@ -25,7 +25,6 @@ import { DotPattern } from '../components/ui/dot-pattern';
 import { AnimatedBeam } from '../components/ui/animated-beam';
 import { Terminal, TypingAnimation, AnimatedSpan } from '../components/ui/terminal';
 import { AuroraText } from '../components/ui/aurora-text';
-import { AnimatedGradientText } from '../components/ui/animated-gradient-text';
 import { RainbowButton } from '../components/ui/rainbow-button';
 import { RippleButton } from '../components/ui/ripple-button';
 import { ConfettiButton } from '../components/ui/confetti';
@@ -146,7 +145,7 @@ export default function HomePage() {
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <header className="relative overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-14 pb-12">
+      <header className="relative overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-10 pb-10 sm:pt-14 sm:pb-12">
         {/* Ripple centres on the node itself: concentric rings reading as a
             signal going out to the network. */}
         <Ripple
@@ -164,40 +163,46 @@ export default function HomePage() {
         />
 
         <div className="relative mx-auto max-w-3xl text-center">
+            {/* Plain text, not AnimatedGradientText.
+
+                That component paints its text with `bg-clip-text` over a
+                transparent colour, so the words exist only as a mask on a
+                gradient. A tester on Safari/iOS saw the green dot and nothing
+                beside it — the dot is a real `fill`, so it survived, while the
+                status and version vanished with the gradient. Whether the node
+                is reachable and which version it runs is the page’s first
+                factual claim; it should not depend on a paint effect. */}
           {!loading && (
-            <AnimatedGradientText
-              className="text-[13px] font-medium"
-              colorFrom="var(--ramp-1)"
-              colorTo="var(--ramp-2)"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Circle
-                  size={7}
-                  fill="currentColor"
-                  className={online ? 'text-success' : 'text-danger'}
-                />
+            <p className="m-0 inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[13px] font-medium text-muted">
+              <Circle
+                size={7}
+                fill="currentColor"
+                aria-hidden="true"
+                className={online ? 'text-success' : 'text-danger'}
+              />
+              <span className="text-foreground">
                 {online ? 'Node online' : 'Node unreachable'}
-                {node?.version && ` · v${node.version}`}
               </span>
-            </AnimatedGradientText>
+              {node?.version && <span>· v{node.version}</span>}
+            </p>
           )}
 
-          <h1 className="m-0 mt-5 text-[40px] sm:text-[58px] font-semibold tracking-tight leading-[1.05] text-foreground">
+          <h1 className="m-0 mt-4 sm:mt-5 text-[32px] sm:text-[58px] font-semibold tracking-tight leading-[1.08] sm:leading-[1.05] text-foreground">
             Every push, <AuroraText speed={1.4} colors={AURORA}>provably signed</AuroraText>
           </h1>
 
-          <p className="mx-auto m-0 mt-5 max-w-[58ch] text-[16px] sm:text-[17px] leading-relaxed text-muted">
+          <p className="mx-auto m-0 mt-4 sm:mt-5 max-w-[58ch] text-[15px] sm:text-[17px] leading-[1.6] sm:leading-relaxed text-muted">
             {node?.name ?? 'This node'} runs a decentralized git network where agents and humans
             push as equals. Every push is signed by a key that never leaves the pusher&rsquo;s
             machine and issues a certificate you can verify without trusting the node that
             served it.
           </p>
 
-          <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
+          <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 sm:flex-wrap">
             {/* Primary: the heaviest button in the set, on the one action that
                 converts — installing gl and making a first signed push. */}
-            <Link to="/docs/quickstart">
-              <RainbowButton size="lg" className="text-[14px] font-medium">
+            <Link to="/docs/quickstart" className="contents sm:block">
+              <RainbowButton size="lg" className="w-full sm:w-auto text-[14px] font-medium">
                 <span className="inline-flex items-center gap-2">
                   Start pushing <ArrowRight size={15} />
                 </span>
@@ -205,8 +210,8 @@ export default function HomePage() {
             </Link>
 
             {/* Secondary: quieter, and it carries a live figure. */}
-            <Link to="/repos">
-              <InteractiveHoverButton className="text-[14px]">
+            <Link to="/repos" className="contents sm:block">
+              <InteractiveHoverButton className="w-full sm:w-auto text-[14px]">
                 Browse {stats ? stats.repos.toLocaleString() : ''} repositories
               </InteractiveHoverButton>
             </Link>
@@ -224,7 +229,7 @@ export default function HomePage() {
         </div>
 
         {/* Live counts as hoverable cards rather than a flat row. */}
-        <div className="relative mx-auto mt-14 grid max-w-4xl grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="relative mx-auto mt-10 sm:mt-14 grid max-w-4xl grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           {[
             { label: 'Repositories', count: stats?.repos, to: '/repos' },
             { label: 'Agents', count: stats?.agents, to: '/agents' },
