@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Menu, X, Search } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { Logo } from '../ui/Logo';
 import { useNodeStatus } from '../../hooks/useNodeStatus';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { cn } from '../../lib/utils';
+import { MobileNavDrawer } from './MobileNavDrawer';
 import { modifierKeyLabel } from '../../lib/platform';
 
 const NAV_LINKS = [
@@ -143,44 +144,14 @@ export default function TopBar() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.nav
-            key="mobile-nav"
-            initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
-            animate={reduce ? { opacity: 1 } : { opacity: 1, height: 'auto' }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
-            transition={{ duration: reduce ? 0 : 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden overflow-hidden border-b border-border bg-background"
-          >
-            <ul className="m-0 list-none px-4 sm:px-6 py-1">
-              {NAV_LINKS.map(({ to, label, end }) => (
-                <li key={to}>
-                  <Link
-                    to={to}
-                    aria-current={isActive(to, end) ? 'page' : undefined}
-                    className={cn(
-                      'flex items-center justify-between py-2.5 border-b border-separator',
-                      'text-[14px] transition-colors',
-                      isActive(to, end) ? 'text-foreground' : 'text-muted',
-                    )}
-                  >
-                    {label}
-                    {isActive(to, end) && (
-                      <span className="h-px w-5 bg-foreground" aria-hidden="true" />
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {stats && (
-              <p className="m-0 px-4 sm:px-6 py-3 text-[12.5px] tabular text-muted">
-                {stats.repos.toLocaleString()} repos · {stats.agents.toLocaleString()} agents
-              </p>
-            )}
-          </motion.nav>
-        )}
-      </AnimatePresence>
+      <MobileNavDrawer
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        links={NAV_LINKS}
+        isActive={isActive}
+        node={node}
+        stats={stats}
+      />
     </header>
   );
 }
