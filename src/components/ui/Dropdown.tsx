@@ -56,7 +56,7 @@ export function Dropdown<T extends string>({
           id={controlId}
           aria-labelledby={`${labelId} ${controlId}`}
           className={cn(
-            'group inline-flex items-center gap-1.5 h-8 pl-3.5 pr-3 text-[13px] whitespace-nowrap',
+            'group inline-flex items-center gap-1.5 h-9 sm:h-8 pl-3.5 pr-3 text-[13px] whitespace-nowrap',
             'rounded-[var(--radius-control)] border border-border bg-transparent text-foreground',
             'cursor-pointer transition-colors hover:border-foreground/45 hover:bg-surface-secondary',
             'data-[state=open]:border-foreground/60 data-[state=open]:bg-surface-secondary',

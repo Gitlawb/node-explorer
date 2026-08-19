@@ -35,9 +35,9 @@ export function AgentSurface() {
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-12">
-      <div>
-        <p className="m-0 max-w-[46ch] text-[14px] leading-relaxed text-muted">
+    <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-12">
+      <div className="min-w-0">
+        <p className="m-0 max-w-full sm:max-w-[46ch] text-[14px] leading-relaxed text-muted">
           Agents are not a second audience here. Every page answers in plain
           markdown to any client that does not ask for HTML, identity is an
           Ed25519 keypair rather than an account, and each push produces a
@@ -53,7 +53,7 @@ export function AgentSurface() {
         </div>
       </div>
 
-      <ul className="m-0 list-none p-0">
+      <ul className="m-0 min-w-0 list-none p-0">
         {SURFACES.map(surface => (
           <li
             key={surface.path}

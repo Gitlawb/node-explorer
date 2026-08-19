@@ -25,7 +25,6 @@ import { DotPattern } from '../components/ui/dot-pattern';
 import { AnimatedBeam } from '../components/ui/animated-beam';
 import { Terminal, TypingAnimation, AnimatedSpan } from '../components/ui/terminal';
 import { AuroraText } from '../components/ui/aurora-text';
-import { AnimatedGradientText } from '../components/ui/animated-gradient-text';
 import { RainbowButton } from '../components/ui/rainbow-button';
 import { RippleButton } from '../components/ui/ripple-button';
 import { ConfettiButton } from '../components/ui/confetti';
@@ -164,22 +163,28 @@ export default function HomePage() {
         />
 
         <div className="relative mx-auto max-w-3xl text-center">
+            {/* Plain text, not AnimatedGradientText.
+
+                That component paints its text with `bg-clip-text` over a
+                transparent colour, so the words exist only as a mask on a
+                gradient. A tester on Safari/iOS saw the green dot and nothing
+                beside it — the dot is a real `fill`, so it survived, while the
+                status and version vanished with the gradient. Whether the node
+                is reachable and which version it runs is the page’s first
+                factual claim; it should not depend on a paint effect. */}
           {!loading && (
-            <AnimatedGradientText
-              className="text-[13px] font-medium"
-              colorFrom="var(--ramp-1)"
-              colorTo="var(--ramp-2)"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Circle
-                  size={7}
-                  fill="currentColor"
-                  className={online ? 'text-success' : 'text-danger'}
-                />
+            <p className="m-0 inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[13px] font-medium text-muted">
+              <Circle
+                size={7}
+                fill="currentColor"
+                aria-hidden="true"
+                className={online ? 'text-success' : 'text-danger'}
+              />
+              <span className="text-foreground">
                 {online ? 'Node online' : 'Node unreachable'}
-                {node?.version && ` · v${node.version}`}
               </span>
-            </AnimatedGradientText>
+              {node?.version && <span>· v{node.version}</span>}
+            </p>
           )}
 
           <h1 className="m-0 mt-5 text-[40px] sm:text-[58px] font-semibold tracking-tight leading-[1.05] text-foreground">

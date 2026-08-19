@@ -110,7 +110,10 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             aria-pressed={active}
             className={cn(
-              'relative inline-flex items-center gap-1.5 px-3 h-7 text-[12.5px] whitespace-nowrap transition-colors',
+              // 36px on a phone, 28 from sm up. These are the primary filter controls on
+              // the listing pages and a 28px target is uncomfortable to hit with a
+              // thumb; desktop keeps the tighter density.
+              'relative inline-flex items-center gap-1.5 px-3.5 sm:px-3 h-9 sm:h-7 text-[13px] sm:text-[12.5px] whitespace-nowrap transition-colors',
               'rounded-[var(--radius-control)]',
               'focus:outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2',
               active ? 'text-background' : 'text-muted hover:text-foreground',
