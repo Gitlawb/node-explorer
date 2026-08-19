@@ -28,7 +28,7 @@ export function ThemeToggle() {
       // the global `*` reset sets border-color, so a transparent border still
       // paints as a 1px frame. The icon is sized down from the component's
       // 24px default, which was cramped inside a 32px hit area.
-      className="inline-flex h-8 w-8 items-center justify-center
+      className="inline-flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center
         text-muted transition-colors hover:text-foreground
         [&_svg]:size-[17px]"
     />

@@ -57,7 +57,7 @@ export default function TopBar() {
       <div className="mx-auto flex h-14 max-w-[1280px] items-center gap-2 sm:gap-6 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
           <Logo className="h-[18px] w-auto shrink-0 text-foreground" />
-          <span className="hidden sm:inline text-[15px] font-semibold tracking-tight text-foreground">
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">
             gitlawb
           </span>
         </Link>
@@ -123,7 +123,7 @@ export default function TopBar() {
             title={`Search — ${paletteHint}`}
             aria-label={`Open command palette (${paletteHint})`}
             aria-keyshortcuts="Meta+K Control+K"
-            className="inline-flex h-8 w-8 items-center justify-center
+            className="inline-flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center
               text-muted transition-colors hover:text-foreground"
           >
             <Search size={17} />
@@ -136,7 +136,7 @@ export default function TopBar() {
             aria-label="Navigation menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(o => !o)}
-            className="md:hidden inline-flex h-8 w-8 items-center justify-center text-muted hover:text-foreground"
+            className="md:hidden inline-flex h-10 w-10 items-center justify-center text-muted hover:text-foreground"
           >
             {menuOpen ? <X size={17} /> : <Menu size={17} />}
           </button>
