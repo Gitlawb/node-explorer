@@ -173,6 +173,18 @@ describe('timeAgo', () => {
     expect(timeAgo('2026-05-01T12:00:00Z')).toBe('2mo ago');
     expect(timeAgo('2024-06-01T12:00:00Z')).toBe('2y ago');
   });
+
+  it('clamps timestamps from a node clock running ahead of the browser', () => {
+    // The node stamps pushes with its own clock; a few seconds of skew is
+    // normal and must never render as a negative age.
+    expect(timeAgo('2026-07-03T12:00:28Z')).toBe('just now');
+    expect(timeAgo('2026-07-03T12:05:00Z')).toBe('just now');
+  });
+
+  it('reads the first few seconds as "just now" rather than counting them', () => {
+    expect(timeAgo('2026-07-03T11:59:58Z')).toBe('just now');
+    expect(timeAgo('2026-07-03T11:59:52Z')).toBe('8s ago');
+  });
 });
 
 describe('formatFileSize', () => {

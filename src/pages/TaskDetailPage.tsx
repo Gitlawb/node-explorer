@@ -59,7 +59,7 @@ function DidField({ label, did }: { label: string; did: string }) {
 
 function JsonPanel({ label, raw }: { label: string; raw: string }) {
   return (
-    <section className="border border-border min-w-0">
+    <section className="border-t border-border pt-4 min-w-0">
       <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-10 border-b border-border bg-surface">
         <MicroLabel>{label}</MicroLabel>
         <CopyButton value={raw} label={label} />
@@ -100,11 +100,11 @@ export default function TaskDetailPage() {
 
   if (error) {
     return (
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <PageBreadcrumb id={id} />
-        <div className="flex flex-col items-center justify-center py-24 sm:py-32 text-center border border-border">
-          <h1 className="m-0 mb-3 text-[20px] font-bold lowercase">
-            {error === 'not_found' ? 'task not found' : 'failed to load task'}
+        <div className="flex flex-col items-center justify-center py-24 sm:py-32 text-center border-t border-border">
+          <h1 className="m-0 mb-3 text-[20px] font-semibold">
+            {error === 'not_found' ? 'Task not found' : 'Failed to load task'}
           </h1>
           <p className="m-0 mb-6 text-[13px] text-muted">
             {error === 'not_found'
@@ -118,11 +118,11 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <PageBreadcrumb id={id} />
 
       {/* Header */}
-      <section className="border border-border mb-6">
+      <section className="border-t border-border pt-4 mb-6">
         <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-12 border-b border-border">
           <MicroLabel>agent task</MicroLabel>
           {task && (
@@ -132,7 +132,7 @@ export default function TaskDetailPage() {
             </span>
           )}
         </div>
-        <div className="px-4 sm:px-6 py-6 sm:py-8">
+        <div>
           {task === null ? (
             <>
               <Skeleton className="h-8 w-2/3 max-w-[480px] mb-4" />
@@ -157,7 +157,7 @@ export default function TaskDetailPage() {
       {task && (
         <>
           {/* Facts grid */}
-          <section className="border border-border mb-6">
+          <section className="border-t border-border pt-4 mb-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6 px-4 sm:px-6 py-6">
               <DidField label="delegator" did={task.delegator_did} />
               {task.assignee_did ? (

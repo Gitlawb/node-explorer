@@ -1,7 +1,7 @@
 import { Circle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useCallback, useRef, useState } from 'react';
-import { Input } from '@heroui/react';
+import { SearchField } from '../components/register/SearchField';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useTasks } from '../hooks/useTasks';
@@ -10,8 +10,7 @@ import { TaskList } from '../components/tasks/TaskList';
 import { TASK_STATUSES, taskStatusColor } from '../components/tasks/status';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
-import { MicroLabel } from '../components/ui/MicroLabel';
-import { Pill } from '../components/ui/Pill';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { cn } from '../lib/utils';
 
 export default function TasksPage() {
@@ -56,7 +55,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
 
       <RepoHero
         totalCount={totalCount}
@@ -64,7 +63,7 @@ export default function TasksPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        title="tasks"
+        title="Tasks"
         countNoun="tasks"
         description={
           <p className="m-0">
@@ -86,54 +85,47 @@ export default function TasksPage() {
 
       <div className="pt-8 pb-20">
 
-        {/* Toolbar: search + status chips */}
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-4 mb-4">
-          <div className="flex-1 min-w-[240px] max-w-[560px]">
-            <MicroLabel className="block mb-1.5">
-              <label htmlFor="task-search">search</label>
-            </MicroLabel>
-            <Input
-              id="task-search"
-              value={searchValue}
-              onChange={e => {
-                setSearchValue(e.target.value);
-                setParams({ q: e.target.value, page: null }, true);
-              }}
-              placeholder="search by title, kind, capability, or did…"
-              autoComplete="off"
-              spellCheck="false"
-              variant="secondary"
-              className="w-full h-9 px-3 rounded-[--radius]"
-            />
-          </div>
+        {/* Toolbar: search + status filter, on one row. */}
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <SearchField
+            id="task-search"
+            label="Search tasks"
+            value={searchValue}
+            onChange={v => {
+              setSearchValue(v);
+              setParams({ q: v, page: null }, true);
+            }}
+            placeholder="Search by title, kind, capability, or DID…"
+            className="flex-1 max-w-[560px]"
+          />
 
-          <div>
-            <MicroLabel className="block mb-1.5">status</MicroLabel>
-            <div className="flex gap-1.5 flex-wrap">
-              <Pill
-                active={!status}
-                onClick={() => setParams({ status: null, page: null })}
-                aria-pressed={!status}
-              >
-                all
-              </Pill>
-              {TASK_STATUSES.map(s => (
-                <Pill
-                  key={s}
-                  active={status === s}
-                  onClick={() => setParams({ status: status === s ? null : s, page: null })}
-                  aria-pressed={status === s}
-                >
-                  <Circle size={7} fill="currentColor" aria-hidden="true" className={cn(taskStatusColor(s))} />
-                  {s}
-                </Pill>
-              ))}
-            </div>
-          </div>
+          <SegmentedControl
+            label="Filter by status"
+            value={status ?? 'all'}
+            onChange={v => setParams({ status: v === 'all' ? null : v, page: null })}
+            options={[
+              { value: 'all', label: 'all' },
+              ...TASK_STATUSES.map(s => ({
+                value: s,
+                label: s,
+                // The dot keeps its status colour on the unselected options. On
+                // the selected one the track is filled with the foreground, so
+                // it inherits that instead and stays visible against the fill.
+                icon: (
+                  <Circle
+                    size={7}
+                    fill="currentColor"
+                    aria-hidden="true"
+                    className={cn(status === s ? '' : taskStatusColor(s))}
+                  />
+                ),
+              })),
+            ]}
+          />
         </div>
 
         {error ? (
-          <div className="border border-border py-16 text-center">
+          <div className="border-t border-border py-16 text-center">
             <p className="m-0 text-[13px] text-danger mb-4">failed to load tasks: {error}</p>
           </div>
         ) : (

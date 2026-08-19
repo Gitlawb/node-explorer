@@ -10,7 +10,8 @@ import { EventList } from './EventList';
 import { CertList } from './CertList';
 import { ReadmePanel } from './ReadmePanel';
 import { Pill } from '../ui/Pill';
-import { Tabs, Button } from '@heroui/react';
+import { Tabs } from '../register/Tabs';
+import { Button } from '../register/controls';
 import {
   getBlob,
   fetchSubtree,
@@ -132,7 +133,7 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
   const [tabData, setTabData] = useState<LazyTabData>(initialTabData);
   // Keyed by `${repo.id}:${tab}` so no reset is needed when the repo changes
   const startedTabsRef = useRef<Set<string>>(new Set());
-  const tabAbortRef = useRef<AbortController | null>(null);
+  const tabAbortRef = useRef<{ ctrl: AbortController; key: string } | null>(null);
 
   // Render-phase reset when the repo changes
   const [prevRepoId, setPrevRepoId] = useState(repo.id);
@@ -144,9 +145,25 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
     setTabData(initialTabData);
   }
 
-  // Abort in-flight lazy-tab fetches from the previous repo
+  // Abort in-flight lazy-tab fetches from the previous repo.
+  //
+  // Clearing the "started" marker alongside the abort is load-bearing: that
+  // marker lives in a ref, so it survives StrictMode's simulated remount while
+  // the request it refers to does not. Deep-linking a lazy tab (?tab=certs)
+  // starts the fetch during the first mount, this cleanup kills it, and the
+  // remount then skips reloading because the tab still looks started — leaving
+  // the panel on "loading…" forever.
   useEffect(() => {
-    return () => { tabAbortRef.current?.abort(); };
+    // The Set is allocated once and never reassigned, so capturing it here is
+    // the same object the cleanup would have read.
+    const startedTabs = startedTabsRef.current;
+    return () => {
+      const inflight = tabAbortRef.current;
+      if (!inflight) return;
+      inflight.ctrl.abort();
+      startedTabs.delete(inflight.key);
+      tabAbortRef.current = null;
+    };
   }, [repo.id]);
 
   // Fetch the tree for treePath when uncached (uncached renders as loading,
@@ -189,18 +206,21 @@ export function DetailTabs({ repo, value, onValueChange, onOpenFinder }: DetailT
   const loadLazyTab = useCallback((tab: LazyTabId) => {
     // No sync state write here — 'idle' already renders as loading, so this is
     // safe to call from an effect (react-hooks/set-state-in-effect).
-    startedTabsRef.current.add(`${repo.id}:${tab}`);
+    const key = `${repo.id}:${tab}`;
+    startedTabsRef.current.add(key);
     const ctrl = new AbortController();
-    tabAbortRef.current = ctrl;
+    tabAbortRef.current = { ctrl, key };
 
     LAZY_FETCHERS[tab](repo.owner, repo.name, ctrl.signal)
       .then(items => {
         if (ctrl.signal.aborted) return;
+        if (tabAbortRef.current?.ctrl === ctrl) tabAbortRef.current = null;
         setTabData(d => ({ ...d, [tab]: { status: 'ready', items } } as LazyTabData));
       })
       .catch(err => {
         if (ctrl.signal.aborted) return;
-        startedTabsRef.current.delete(`${repo.id}:${tab}`);
+        if (tabAbortRef.current?.ctrl === ctrl) tabAbortRef.current = null;
+        startedTabsRef.current.delete(key);
         setTabData(d => ({
           ...d,
           [tab]: { status: 'error', items: [], error: errMsg(err) },

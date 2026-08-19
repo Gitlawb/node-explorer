@@ -1,4 +1,4 @@
-import { Table } from '@heroui/react';
+import { Table } from '../register/controls';
 import type { RepoCommit } from '../../types/repo';
 
 interface CommitListProps {
@@ -20,16 +20,16 @@ export function CommitList({ commits }: CommitListProps) {
         <Table.ScrollContainer>
           <Table.Content aria-label="Commits">
             <Table.Header>
-              <Table.Column className="text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6 w-24 sm:w-28">
+              <Table.Column className="text-[12px] font-semibold text-muted h-9 px-4 w-24 sm:w-28">
                 Hash
               </Table.Column>
-              <Table.Column className="text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6">
+              <Table.Column className="text-[12px] font-semibold text-muted h-9 px-4">
                 Message
               </Table.Column>
-              <Table.Column className="hidden sm:table-cell text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6 w-32">
+              <Table.Column className="hidden sm:table-cell text-[12px] font-semibold text-muted h-9 px-4 w-32">
                 Author
               </Table.Column>
-              <Table.Column className="text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6 text-right w-24 sm:w-28">
+              <Table.Column className="text-[12px] font-semibold text-muted h-9 px-4 text-right w-24 sm:w-28">
                 When
               </Table.Column>
             </Table.Header>

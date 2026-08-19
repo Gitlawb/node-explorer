@@ -107,7 +107,7 @@ Certificates are gossiped over libp2p. Any node receiving a valid certificate up
 }
 ```
 
-Every certificate a node issues is inspectable: `gl cert show`, `gl cert verify`, or the [events feed](/events) on this explorer.
+Every certificate a node issues is inspectable: `gl cert show`, `gl cert verify`, or the **certificates** tab on the repository's page in this explorer. The global [events feed](/events) is not the place to look — it carries only ref updates gossiped in from peer nodes, not pushes this node received directly.
 
 ## Issues and PRs as git objects
 

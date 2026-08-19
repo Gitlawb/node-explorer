@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, Navigate, useParams } from 'react-router-dom';
-import { Link } from '@heroui/react';
-import { MarkdownView } from '../components/repo-detail/MarkdownView';
+import { NavLink, Navigate, useParams, useLocation } from 'react-router-dom';
+
+import { DocArticle } from '../components/docs/DocArticle';
+import { DocsPager } from '../components/docs/DocsPager';
+import { AgentTextPanel } from '../components/docs/AgentTextPanel';
 import { TocRail } from '../components/repo-detail/TocRail';
+import { Skeleton } from '../components/register/controls';
+import { ScrollProgress } from '../components/ui/scroll-progress';
 import { extractTocHeadings } from '../lib/toc';
-import { MicroLabel } from '../components/ui/MicroLabel';
 import { cn } from '../lib/utils';
 
 /** Docs are static markdown served from public/docs/ — same files agents fetch raw. */
 const DOCS = [
-  { slug: 'quickstart', label: 'quickstart', title: 'Quickstart', blurb: 'Install gl and make your first signed push' },
-  { slug: 'agents', label: 'for agents', title: 'For AI agents', blurb: 'End-to-end instructions for operating on gitlawb' },
-  { slug: 'protocol', label: 'protocol', title: 'Protocol', blurb: 'Identity, storage, networking, and ref consensus' },
-  { slug: 'node', label: 'run a node', title: 'Run a node', blurb: 'Stake, register, and operate a gitlawb node' },
+  { slug: 'quickstart', label: 'Quickstart', title: 'Quickstart', blurb: 'Install gl and make your first signed push' },
+  { slug: 'agents', label: 'For agents', title: 'For AI agents', blurb: 'End-to-end instructions for operating on gitlawb' },
+  { slug: 'protocol', label: 'Protocol', title: 'Protocol', blurb: 'Identity, storage, networking, and ref consensus' },
+  { slug: 'node', label: 'Run a node', title: 'Run a node', blurb: 'Stake, register, and operate a gitlawb node' },
 ] as const;
 
 type DocSlug = (typeof DOCS)[number]['slug'];
@@ -28,6 +31,7 @@ interface DocState {
 
 export default function DocsPage() {
   const { slug = 'quickstart' } = useParams();
+  const { hash } = useLocation();
   const [loaded, setLoaded] = useState<DocState>({ slug: null, html: null, error: null });
 
   useEffect(() => {
@@ -67,62 +71,117 @@ export default function DocsPage() {
   const state: Omit<DocState, 'slug'> =
     loaded.slug === slug ? loaded : { html: null, error: null };
 
+  // Arriving at /docs/<slug>#<heading> — from the command palette or a shared
+  // link — the browser only scrolls for a hash present at load. Under client
+  // navigation the target does not exist until the markdown has rendered, so
+  // the scroll waits for the document to land.
+  //
+  // The hash comes from the router and is a dependency. Reading
+  // window.location.hash and keying only on the slug meant a jump into a
+  // document already open changed nothing this effect watched: following a
+  // second search result within the same page left the reader where they were.
+  useEffect(() => {
+    if (loaded.slug !== slug || !loaded.html) return;
+    const id = decodeURIComponent(hash.slice(1));
+    if (!id) return;
+    // Scrolled directly, not inside requestAnimationFrame. DocArticle rewrites
+    // this markup in a layout effect — dropping the duplicate h1, wrapping each
+    // fence — and a child layout effect runs before this parent effect, so the
+    // heading already sits at its final offset here. Waiting for a frame only
+    // added a dependency on the tab being painted: opened in a background tab,
+    // the callback was deferred and the reader arrived at the top of the page.
+    document.getElementById(id)?.scrollIntoView({ block: 'start' });
+  }, [loaded.slug, loaded.html, slug, hash]);
+
   const headings = useMemo(
     () => (state.html ? extractTocHeadings(state.html) : []),
     [state.html],
   );
 
   if (!isDocSlug(slug)) return <Navigate to="/docs/quickstart" replace />;
-  const doc = DOCS.find(d => d.slug === slug)!;
+  const index = DOCS.findIndex(d => d.slug === slug);
+  const doc = DOCS[index];
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8">
-      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-        <aside className="lg:w-48 shrink-0">
-          <MicroLabel className="mb-3">docs</MicroLabel>
-          <nav aria-label="documentation" className="flex lg:flex-col gap-1 overflow-x-auto">
-            {DOCS.map(d => (
-              <NavLink
-                key={d.slug}
-                to={`/docs/${d.slug}`}
-                className={({ isActive }) =>
-                  cn(
-                    'px-2 py-1.5 text-[13px] lowercase whitespace-nowrap rounded-[--radius] transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
-                    isActive
-                      ? 'text-foreground font-bold bg-muted'
-                      : 'text-muted hover:text-foreground',
-                  )
-                }
-              >
-                {d.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="hidden lg:block mt-6 pt-4 border-t border-border text-[12px] text-muted space-y-1.5">
-            <p>
-              <Link href="/skill.md" className="underline">skill.md</Link>
-              {' — agent skill file'}
-            </p>
-            <p>
-              <Link href="/llms.txt" className="underline">llms.txt</Link>
-              {' — machine index'}
-            </p>
-            <p>
-              <Link href={`/docs/${slug}.md`} className="underline">raw markdown</Link>
-              {' — this page'}
-            </p>
+    <div className="mx-auto max-w-[1400px] px-4 pb-20 sm:px-6 lg:px-8">
+      <ScrollProgress />
+
+      <div className="flex flex-col gap-8 pt-8 lg:flex-row lg:gap-12">
+
+        {/* Section nav. Sticky on wide screens so the set of documents stays
+            in view while reading a long one. */}
+        <aside className="shrink-0 lg:w-[215px]">
+          <div className="lg:sticky lg:top-20">
+            <p className="m-0 mb-3 text-[11.5px] text-muted">Documentation</p>
+            <nav
+              aria-label="documentation"
+              className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0"
+            >
+              {DOCS.map(d => (
+                <NavLink
+                  key={d.slug}
+                  to={`/docs/${d.slug}`}
+                  className={({ isActive }) =>
+                    cn(
+                      'block whitespace-nowrap rounded-[var(--radius-control)] px-3 py-1.5 text-[13.5px] transition-colors',
+                      isActive
+                        ? 'bg-foreground font-medium text-background'
+                        : 'text-muted hover:bg-surface-secondary hover:text-foreground',
+                    )
+                  }
+                >
+                  {d.label}
+                </NavLink>
+              ))}
+            </nav>
+
+            <div className="mt-6 hidden lg:block">
+              <AgentTextPanel slug={slug} />
+            </div>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 max-w-[820px]">
-          {state.error && (
-            <p className="text-[13px] text-muted py-8">{doc.title}: {state.error}</p>
-          )}
-          {!state.error && state.html === null && (
-            <p className="text-[13px] text-muted py-8">loading…</p>
-          )}
-          {state.html !== null && <MarkdownView html={state.html} />}
+        <main className="min-w-0 flex-1">
+          <header className="mb-8">
+            <h1 className="m-0 text-[30px] font-semibold leading-tight text-foreground">
+              {doc.title}
+            </h1>
+            <p className="m-0 mt-2 max-w-[68ch] text-[15px] text-muted">{doc.blurb}</p>
+          </header>
+
+          <article className="max-w-[72ch]">
+            {state.error && (
+              <div className="py-10">
+                <p className="m-0 text-[14px] font-medium text-danger">{state.error}</p>
+                <p className="m-0 mt-2 text-[13px] text-muted">
+                  The source file is still readable directly at{' '}
+                  <a href={`/docs/${slug}.md`} className="text-accent hover:underline">
+                    /docs/{slug}.md
+                  </a>
+                  .
+                </p>
+              </div>
+            )}
+            {!state.error && state.html === null && (
+              <div className="flex flex-col gap-3 py-6" aria-busy="true">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-11/12" />
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-28 w-full mt-3" />
+                <Skeleton className="h-4 w-10/12 mt-3" />
+                <Skeleton className="h-4 w-9/12" />
+              </div>
+            )}
+            {state.html !== null && <DocArticle html={state.html} />}
+          </article>
+
+          {/* Below the article on narrow screens, where the sidebar is not
+              sticky and the panel would otherwise sit above the content. */}
+          <div className="mt-10 lg:hidden">
+            <AgentTextPanel slug={slug} />
+          </div>
+
+          <DocsPager previous={DOCS[index - 1]} next={DOCS[index + 1]} />
         </main>
 
         {headings.length >= 3 && <TocRail headings={headings} />}

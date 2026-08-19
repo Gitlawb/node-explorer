@@ -1,11 +1,12 @@
 import { Circle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useCallback, useRef, useState } from 'react';
-import { Input } from '@heroui/react';
+import { SearchField } from '../components/register/SearchField';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { usePeers } from '../hooks/usePeers';
 import { PeerList } from '../components/peers/PeerList';
+import { PeerOrbit } from '../components/peers/PeerOrbit';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
 import { MicroLabel } from '../components/ui/MicroLabel';
@@ -52,7 +53,7 @@ export default function PeersPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
 
       <RepoHero
         totalCount={totalCount}
@@ -60,7 +61,7 @@ export default function PeersPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        title="peers"
+        title="Peers"
         countNoun="peers"
         description={
           <p className="m-0">
@@ -82,21 +83,26 @@ export default function PeersPage() {
         ]}
       />
 
-      <div className="pt-8 pb-20">
+      <div className="pt-2 pb-20">
+
+        {/* The federation, drawn as an orbit around this node. */}
+        {peers && peers.length > 0 && (
+          <PeerOrbit peers={peers} nodeName={p2p?.peer_id ? 'this node' : undefined} />
+        )}
 
         {/* P2P identity strip */}
         {p2p?.enabled && p2p.peer_id && (
-          <div className="flex items-center gap-x-4 gap-y-2 flex-wrap border border-border px-4 sm:px-6 py-3 mb-6">
+          <div className="flex items-center gap-x-4 gap-y-2 flex-wrap border-t border-border pt-3 mb-6">
             <span className="flex items-center gap-2">
               <Circle size={7} fill="currentColor" aria-hidden="true" className="text-success" />
               <MicroLabel>libp2p</MicroLabel>
             </span>
-            <span className="text-[12px] text-muted truncate" title={p2p.peer_id}>
+            <span className="text-[12px] text-muted truncate font-mono" title={p2p.peer_id}>
               {p2p.peer_id.slice(0, 12)}…{p2p.peer_id.slice(-8)}
             </span>
             <CopyButton value={p2p.peer_id} label="peer id" />
             {(p2p.topics ?? []).map(t => (
-              <span key={t} className="text-[10px] text-accent border border-separator rounded-[--radius] px-1.5 py-0.5">
+              <span key={t} className="text-[12px] text-accent border border-border rounded-full px-2 py-[1px] font-mono">
                 {t}
               </span>
             ))}
@@ -104,27 +110,20 @@ export default function PeersPage() {
         )}
 
         {/* Search */}
-        <div className="max-w-[560px] mb-4">
-          <MicroLabel className="block mb-1.5">
-            <label htmlFor="peer-search">search</label>
-          </MicroLabel>
-          <Input
-            id="peer-search"
-            value={searchValue}
-            onChange={e => {
-              setSearchValue(e.target.value);
-              setParams({ q: e.target.value, page: null }, true);
-            }}
-            placeholder="search by did or host…"
-            autoComplete="off"
-            spellCheck="false"
-            variant="secondary"
-            className="w-full h-9 px-3 rounded-[--radius]"
-          />
-        </div>
+        <SearchField
+          id="peer-search"
+          label="Search peers"
+          value={searchValue}
+          onChange={v => {
+            setSearchValue(v);
+            setParams({ q: v, page: null }, true);
+          }}
+          placeholder="Search by DID or host…"
+          className="max-w-[560px] mb-5"
+        />
 
         {error ? (
-          <div className="border border-border py-16 text-center">
+          <div className="border-t border-border py-16 text-center">
             <p className="m-0 text-[13px] text-danger mb-4">failed to load peers: {error}</p>
           </div>
         ) : (

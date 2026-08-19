@@ -4,7 +4,7 @@ import { Pill } from '../ui/Pill';
 
 export function IssueList({ items }: { items: ApiIssue[] }) {
   return (
-    <ul className="m-0 p-0 list-none border border-border">
+    <ul className="m-0 p-0 list-none border-t border-border">
       {items.map(issue => (
         <li key={issue.id} className="px-4 sm:px-6 py-4 border-b border-separator last:border-b-0">
           <div className="flex items-center gap-3 flex-wrap">

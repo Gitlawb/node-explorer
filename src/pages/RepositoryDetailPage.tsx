@@ -3,10 +3,9 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useRepository } from '../hooks/useRepository';
 import { useRepositorySocialMetadata } from '../hooks/useRepositorySocialMetadata';
 import { useShortcut, useShortcuts } from '../hooks/useShortcuts';
-import { shortDid } from '../lib/api';
+import { shortDid, didKeySegment } from '../lib/api';
 import { FileFinder } from '../components/repo-detail/FileFinder';
 import { DetailHeader } from '../components/repo-detail/DetailHeader';
-import { StatsPanel } from '../components/repo-detail/StatsPanel';
 import { ClonePanel } from '../components/repo-detail/ClonePanel';
 import { CommitStrip } from '../components/repo-detail/CommitStrip';
 import { DetailTabs } from '../components/repo-detail/DetailTabs';
@@ -157,34 +156,40 @@ export default function RepositoryDetailPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-12 ">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <PageBreadcrumb owner={owner} name={name} />
 
       {partialError && (
-        <p className="m-0 mb-6 px-4 py-3 border border-danger/40 text-[12px] text-danger">
+        <p className="m-0 mb-5 px-3 py-2 rounded-[var(--radius)] border border-danger/40 bg-danger/5 text-[13px] text-danger">
           {partialError} — some sections may appear empty
         </p>
       )}
 
-      {/* Two-column top section */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-6 lg:gap-10 mb-8 sm:mb-10 min-w-0">
-        <DetailHeader repo={repo} />
-        <div className="space-y-4 sm:space-y-5 min-w-0">
-          <StatsPanel stars={repo.stars} latestCommit={repo.latestCommit} created={repo.createdAt} />
-          <ClonePanel cloneUrl={repo.cloneUrl} onNavigate={setTab} />
-        </div>
-      </div>
+      {/* Header runs full width, as a repository page header does. Stars,
+          updated, and created live in it rather than in a metric grid. */}
+      <DetailHeader repo={repo} />
 
-      {/* Commit strip */}
       {repo.latestCommit && <CommitStrip commit={repo.latestCommit} />}
 
-      {/* Tabs + content */}
-      <DetailTabs
-        repo={repo}
-        value={tab}
-        onValueChange={setTab}
-        onOpenFinder={() => setOpenModal('finder')}
-      />
+      {/* Tabs full width, content below, sidebar alongside the content. */}
+      <div className="mt-6 grid lg:grid-cols-[minmax(0,1fr)_268px] gap-x-10 gap-y-8">
+        <div className="min-w-0">
+          <DetailTabs
+            repo={repo}
+            value={tab}
+            onValueChange={setTab}
+            onOpenFinder={() => setOpenModal('finder')}
+          />
+        </div>
+
+        <aside className="min-w-0 flex flex-col gap-6">
+          <ClonePanel
+            cloneUrl={repo.cloneUrl}
+            gitlawbUrl={`gitlawb://${didKeySegment(repo.owner)}/${repo.name}`}
+            onNavigate={setTab}
+          />
+        </aside>
+      </div>
 
       <FileFinder
         repo={repo}

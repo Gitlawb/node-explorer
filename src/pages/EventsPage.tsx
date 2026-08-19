@@ -1,7 +1,8 @@
-import { Circle } from 'lucide-react';
+import { Radio } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { cn } from '../lib/utils';
 import { useCallback, useRef, useState } from 'react';
-import { Input } from '@heroui/react';
+import { SearchField } from '../components/register/SearchField';
 import { useListNav } from '../hooks/useShortcuts';
 import { DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../lib/constants';
 import { useRefUpdates } from '../hooks/useRefUpdates';
@@ -10,8 +11,6 @@ import { RefUpdateList } from '../components/events/RefUpdateList';
 import { LocalPushPanel } from '../components/events/LocalPushPanel';
 import { RepoPagination } from '../components/repos/RepoPagination';
 import { RepoHero } from '../components/repos/RepoHero';
-import { MicroLabel } from '../components/ui/MicroLabel';
-import { Pill } from '../components/ui/Pill';
 
 export default function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,7 +54,7 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-12">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
 
       <RepoHero
         totalCount={totalCount}
@@ -63,12 +62,12 @@ export default function EventsPage() {
         perPage={perPage}
         windowStart={windowStart}
         windowEnd={windowEnd}
-        title="events"
+        title="Events"
         countNoun="events"
         description={
           <p className="m-0">
             Ref updates gossiped in from peer nodes over libp2p{' '}
-            (<Circle size={6} fill="currentColor" className="inline text-accent" aria-hidden="true" /> gossip).
+            (<Radio size={12} className="inline text-accent align-[-1px]" aria-hidden="true" /> gossip).
             Pushes received directly by this node are recorded as signed certificates on each
             repository's page — search below to find them. The feed keeps the
             latest {MAX_EVENT_LIMIT} events{live ? ' and refreshes itself every 30s' : ''}.
@@ -83,57 +82,68 @@ export default function EventsPage() {
 
       <div className="pt-8 pb-20">
 
-        {/* Toolbar: search + live toggle */}
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-4 mb-4">
-          <div className="flex-1 min-w-[240px] max-w-[560px]">
-            <MicroLabel className="block mb-1.5">
-              <label htmlFor="event-search">search</label>
-            </MicroLabel>
-            <Input
-              id="event-search"
-              value={searchValue}
-              onChange={e => {
-                setSearchValue(e.target.value);
-                setParams({ q: e.target.value, page: null }, true);
-              }}
-              placeholder="search by repo, ref, or pusher…"
-              autoComplete="off"
-              spellCheck="false"
-              variant="secondary"
-              className="w-full h-9 px-3 rounded-[--radius]"
-            />
-          </div>
+        {/* Toolbar: one row — a search field with its icon inside, and the
+            live/paused state as a single toggle rather than a labelled chip. */}
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <SearchField
+            id="event-search"
+            label="Search events"
+            value={searchValue}
+            onChange={v => {
+              setSearchValue(v);
+              setParams({ q: v, page: null }, true);
+            }}
+            placeholder="Search by repo, ref, or pusher…"
+            className="flex-1 max-w-[560px]"
+          />
 
-          <div>
-            <MicroLabel className="block mb-1.5">feed</MicroLabel>
-            <Pill
-              active={live}
-              onClick={() => setParams({ live: live ? 'off' : null })}
-              aria-pressed={live}
-              title="auto-refresh every 30s while the tab is visible"
-            >
-              {live ? <><Circle size={6} fill="currentColor" className="text-success inline" /> live</> : 'paused'}
-            </Pill>
-          </div>
+          <button
+            type="button"
+            onClick={() => setParams({ live: live ? 'off' : null })}
+            aria-pressed={live}
+            title="Auto-refresh every 30s while the tab is visible"
+            className={cn(
+              'inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-[13px]',
+              'transition-colors',
+              live
+                ? 'border-success/40 bg-success/10 text-success'
+                : 'border-border text-muted hover:text-foreground',
+            )}
+          >
+            <span className="relative flex size-2">
+              {live && (
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-70" />
+              )}
+              <span
+                className={cn(
+                  'relative inline-flex size-2 rounded-full',
+                  live ? 'bg-success' : 'bg-muted',
+                )}
+              />
+            </span>
+            {live ? 'Live' : 'Paused'}
+          </button>
         </div>
 
         <LocalPushPanel query={search} />
 
         {error ? (
-          <div className="border border-border py-16 text-center">
-            <p className="m-0 text-[13px] text-danger mb-4">failed to load events: {error}</p>
+          <div className="border-t border-border py-16 text-center">
+            <p className="m-0 text-[14px] text-danger">Failed to load events: {error}</p>
           </div>
         ) : (
           <>
-            <div ref={listRef} className="border border-border">
+            {/* No wrapper: each event is its own card, so a container border
+                around them stacks a box on top of a stack of boxes. */}
+            <div ref={listRef}>
               <RefUpdateList
                 events={events}
                 loading={loading}
                 skeletonCount={Math.min(perPage, 12)}
                 emptyMessage={
                   search
-                    ? 'no gossip events match — pushes to this node show up under local pushes and on the repo page'
-                    : 'no gossip from peer nodes yet'
+                    ? 'No gossip events match — pushes to this node appear under local pushes and on the repo page'
+                    : 'No gossip from peer nodes yet'
                 }
               />
             </div>

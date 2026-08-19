@@ -1,4 +1,4 @@
-import { Table } from '@heroui/react';
+import { Table } from '../register/controls';
 import { Folder, FolderOpen } from 'lucide-react';
 import type { RepoFile } from '../../types/repo';
 import { getFileIcon } from '../../lib/fileIcons';
@@ -60,10 +60,13 @@ export function FileList({ files, onClickEntry }: FileListProps) {
         <Table.ScrollContainer>
           <Table.Content aria-label="Files">
             <Table.Header>
-              <Table.Column className="text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6">
+              <Table.Column className="text-[12px] font-semibold text-muted h-8 px-4">
                 Name
               </Table.Column>
-              <Table.Column className="text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground h-10 px-4 sm:px-6 text-right w-20 sm:w-24">
+              {/* Wide enough for "32.2 KB" on one line. At w-20 the unit wrapped
+                  under the number, which made that row taller than the rest and
+                  broke the list's rhythm. */}
+              <Table.Column className="text-[12px] font-semibold text-muted h-8 px-4 text-right w-24 sm:w-28">
                 Size
               </Table.Column>
             </Table.Header>
@@ -75,15 +78,22 @@ export function FileList({ files, onClickEntry }: FileListProps) {
                   onAction={onClickEntry ? () => onClickEntry(file) : undefined}
                   className={onClickEntry ? 'cursor-pointer hover:bg-surface-secondary transition-colors' : 'cursor-default'}
                 >
-                  <Table.Cell className="px-4 sm:px-6 py-2.5 sm:py-3">
-                    <div className="flex items-center gap-2 sm:gap-3">
+                  {/* 24px of vertical padding per row put twelve entries well
+                      past a screen and made a short tree feel like a long one.
+                      A file list is for scanning, so the row is sized to its
+                      content: ~34px, close to the density a forge uses. */}
+                  <Table.Cell className="px-4 sm:px-5 py-1.5">
+                    {/* A fixed line box on both cells. The size column is set
+                        in mono, whose taller line box made rows carrying a size
+                        3px deeper than the directory rows that carry none. */}
+                    <div className="flex h-5 items-center gap-2.5">
                       <FileIcon name={file.name} type={file.type} />
-                      <span className="text-[13px] sm:text-[14px] text-foreground">{file.name}</span>
+                      <span className="truncate text-[13.5px] leading-5 text-foreground">{file.name}</span>
                     </div>
                   </Table.Cell>
-                  <Table.Cell className="px-4 sm:px-6 py-2.5 sm:py-3 text-right">
+                  <Table.Cell className="px-4 sm:px-5 py-1.5 text-right">
                     {file.size && file.size !== '—' ? (
-                      <span className="text-[11px] sm:text-[12px] tabular-nums font-mono text-muted">
+                      <span className="block h-5 whitespace-nowrap text-[12px] leading-5 tabular-nums font-mono text-muted">
                         {file.size}
                       </span>
                     ) : null}

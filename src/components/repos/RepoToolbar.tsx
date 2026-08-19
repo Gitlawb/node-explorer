@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Input, Select, SelectTrigger, SelectValue, SelectPopover, Menu, MenuItem } from '@heroui/react';
 import type { RepoSort } from '../../lib/api';
-import { Pill } from '../ui/Pill';
-import { MicroLabel } from '../ui/MicroLabel';
+import { SearchField } from '../register/SearchField';
+import { Dropdown } from '../ui/Dropdown';
+import { SegmentedControl } from '../ui/SegmentedControl';
 
 export type ForkFilter = 'all' | 'forks' | 'sources';
 
@@ -15,14 +15,16 @@ interface RepoToolbarProps {
   onForkFilterChange: (v: ForkFilter) => void;
   searchScope: 'server' | 'page';
   loadedCount: number;
+  /** True when the list is paginated, so the fork filter only sees this page. */
+  filterScopedToPage: boolean;
 }
 
 const SORT_OPTIONS: { value: RepoSort; label: string }[] = [
-  { value: 'updated', label: 'recently updated' },
-  { value: 'created', label: 'newest' },
-  { value: 'oldest', label: 'oldest' },
-  { value: 'name', label: 'name' },
-  { value: 'stars', label: 'most stars' },
+  { value: 'updated', label: 'Recently updated' },
+  { value: 'created', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'name', label: 'Name' },
+  { value: 'stars', label: 'Most stars' },
 ];
 
 const FORK_FILTERS: { value: ForkFilter; label: string }[] = [
@@ -40,6 +42,7 @@ export function RepoToolbar({
   onForkFilterChange,
   searchScope,
   loadedCount,
+  filterScopedToPage,
 }: RepoToolbarProps) {
   // Local input state: the URL param lags a router transition behind fast
   // typing, so a URL-controlled input drops keystrokes. Local value is the
@@ -61,22 +64,15 @@ export function RepoToolbar({
   };
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between mb-4">
-
-      {/* Search */}
-      <div className="flex-1 max-w-[560px]">
-        <MicroLabel className="block mb-1.5">
-          <label htmlFor="repo-search">search</label>
-        </MicroLabel>
-        <Input
+    <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+      <div className="flex-1 min-w-[240px] max-w-[460px]">
+        <SearchField
           id="repo-search"
+          label="Search repositories"
           value={value}
-          onChange={e => handleChange(e.target.value)}
-          placeholder="search repos…"
-          autoComplete="off"
-          spellCheck="false"
-          variant="secondary"
-          className="w-full h-9 px-3 rounded-[--radius]"
+          onChange={handleChange}
+          placeholder="Search by name or owner…"
+          className="w-full"
         />
         {search && searchScope === 'page' && (
           <p className="m-0 mt-1.5 text-[11px] text-muted">
@@ -85,49 +81,31 @@ export function RepoToolbar({
         )}
       </div>
 
-      <div className="flex items-end gap-4 flex-wrap">
-        {/* Sort */}
-        <div>
-          <MicroLabel className="block mb-1.5">
-            <label htmlFor="repo-sort">sort</label>
-          </MicroLabel>
-          <Select
-            selectedKey={sort}
-            onSelectionChange={key => onSortChange(key as RepoSort)}
-            variant="secondary"
-            className="min-w-[140px]"
-          >
-            <SelectTrigger id="repo-sort" className="h-9 text-[12px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectPopover>
-              <Menu>
-                {SORT_OPTIONS.map(o => (
-                  <MenuItem key={o.value} id={o.value}>{o.label}</MenuItem>
-                ))}
-              </Menu>
-            </SelectPopover>
-          </Select>
-        </div>
+      <Dropdown
+        id="repo-sort"
+        label="Sort"
+        options={SORT_OPTIONS}
+        value={sort}
+        onChange={onSortChange}
+      />
 
-        {/* Fork filter */}
-        <div>
-          <MicroLabel className="block mb-1.5" aria-hidden="true">filter</MicroLabel>
-          <div role="group" aria-label="filter by fork status" className="flex gap-1.5">
-            {FORK_FILTERS.map(f => (
-              <Pill
-                key={f.value}
-                onClick={() => onForkFilterChange(f.value)}
-                active={forkFilter === f.value}
-                aria-label={`show ${f.label}`}
-              >
-                {f.label}
-              </Pill>
-            ))}
-          </div>
-        </div>
+      {/* Fork filter. It runs over the repos already fetched, not the whole
+          node, so while the list is paginated the scope is stated — otherwise
+          an empty result reads as "this node has no forks" when only the
+          current page was ever examined. */}
+      <div className="flex flex-col gap-1">
+        <SegmentedControl
+          options={FORK_FILTERS}
+          value={forkFilter}
+          onChange={onForkFilterChange}
+          label="filter by fork status"
+        />
+        {forkFilter !== 'all' && filterScopedToPage && (
+          <p className="m-0 text-[11px] text-muted">
+            within this page ({loadedCount} loaded)
+          </p>
+        )}
       </div>
-
     </div>
   );
 }

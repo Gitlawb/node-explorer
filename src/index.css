@@ -1,11 +1,323 @@
 @import "tailwindcss";
-@import "@heroui/styles";
+/* Enter/exit utilities (animate-in, fade-in-0, zoom-in-95, slide-in-from-*).
+   Radix drives them from data-[state] on the popup; without this import those
+   class names compile to nothing and the menu appears with no transition. */
+@import "tw-animate-css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  border-color: var(--color-border);
+/* ─────────────────────────────────────────────────────────────────────────
+   gitlawb.com's identity, applied.
+
+   Extracted from the live site rather than approximated: pure #000 ground,
+   pure #fff text, Geist Mono throughout, zero border radius. Hierarchy is
+   built from WHITE AT ALPHA (0.8 / 0.7 / 0.55 / 0.45 / 0.3 / 0.2 / 0.1), not
+   from a grey ramp — that is what keeps the surface reading as monochrome
+   rather than as a dark theme with grey furniture.
+
+   There is no brand accent: links on gitlawb.com are plain white. The single
+   colour in the system is #05df72, and it is reserved strictly for liveness —
+   the site uses it on "live" chips and nowhere else. Spending it on anything
+   that is not a live signal breaks the one meaning it carries.
+
+   Dark is primary here because the source identity is a black site; light is
+   its exact inversion, fully specified.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="light"] {
+  --canvas: #ffffff;
+  --canvas-inset: #f7f7f7;
+  --canvas-subtle: #fafafa;
+  --canvas-raised: #ffffff;
+
+  --fg: #000000;
+  --fg-muted: rgba(0, 0, 0, 0.82);   /* 4.57:1 on white */
+  --fg-subtle: rgba(0, 0, 0, 0.62);  /* 2.44:1 — decoration only */
+
+  --line: rgba(0, 0, 0, 0.2);
+  --line-muted: rgba(0, 0, 0, 0.1);
+
+  /* Monochrome: the "accent" is the foreground itself. */
+  --accent: #000000;
+  --accent-hover: rgba(0, 0, 0, 0.7);
+  --accent-fg: #ffffff;
+  --accent-subtle: rgba(0, 0, 0, 0.06);
+
+  --success: #00712f;  /* 6.17:1 on white, 5.4:1 on the /10 tint the status
+                          chips sit on. #00a63e read 3.22:1 and failed both. */
+  --danger: #e7000b;
+  --attention: #a65f00;
+  --done: #7008e7;
+
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+
+  /* Gradient ramp for text painted via background-clip. Must invert with the
+     theme: a hardcoded ramp renders white-on-white in light mode, with the
+     text fully invisible and no error anywhere. */
+  --ramp-1: #000000;
+  --ramp-2: rgba(0, 0, 0, 0.80);
+  --ramp-3: #000000;
+  --ramp-4: rgba(0, 0, 0, 0.72);  /* lightest stop still 3.18:1 for display text */
+
+  /* Radius.
+     The identity draws its rules and list hairlines square, and those stay
+     square — rounding a table row or a section rule looks wrong. Controls are
+     the exception: a control at zero radius reads as a hard box, and this page
+     carries a lot of them side by side. `--radius-control` is a full round, to
+     match the search field, which is the one control that always had it.
+     Panels that float above the page take `--radius`. */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-control: 9999px;
+}
+
+.dark,
+[data-theme="dark"] {
+  --canvas: #000000;
+  --canvas-inset: #000000;
+  --canvas-subtle: rgba(255, 255, 255, 0.04);
+  --canvas-raised: #000000;
+
+  --fg: #ffffff;
+  --fg-muted: rgba(255, 255, 255, 0.7);
+  --fg-subtle: rgba(255, 255, 255, 0.45);
+
+  --line: rgba(255, 255, 255, 0.2);
+  --line-muted: rgba(255, 255, 255, 0.1);
+
+  --accent: #ffffff;
+  --accent-hover: rgba(255, 255, 255, 0.7);
+  --accent-fg: #000000;
+  --accent-subtle: rgba(255, 255, 255, 0.08);
+
+  /* The one colour in the system, and only for liveness. */
+  --success: #05df72;
+  --danger: #ff6467;
+  --attention: #ffb900;
+  --done: #a684ff;
+
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+
+  --ramp-1: #ffffff;
+  --ramp-2: rgba(255, 255, 255, 0.55);
+  --ramp-3: #ffffff;
+  --ramp-4: rgba(255, 255, 255, 0.35);
+}
+
+@theme inline {
+  --color-background: var(--canvas);
+  --color-canvas-inset: var(--canvas-inset);
+  --color-surface: var(--canvas-raised);
+  --color-surface-secondary: var(--canvas-subtle);
+  --color-surface-tertiary: var(--canvas-inset);
+
+  --color-foreground: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+
+  --color-border: var(--line);
+  --color-separator: var(--line-muted);
+  --color-rule: var(--line);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--attention);
+  --color-attention: var(--attention);
+  --color-done: var(--done);
+
+  /* shadcn base tokens.
+     Registry components (Magic UI, Aceternity, shadcn's own button) are written
+     against this vocabulary — bg-primary, text-primary-foreground, ring-ring,
+     border-input. Without them those utilities resolve to nothing and fail
+     silently: an unstyled colour is not an error, it is just invisible text on
+     an invisible fill. Mapped onto this project's palette. */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--canvas-subtle);
+  --color-secondary-foreground: var(--fg);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #ffffff;
+  --color-muted-foreground: var(--fg-muted);
+  --color-card: var(--canvas-raised);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--canvas-raised);
+  --color-popover-foreground: var(--fg);
+  --color-input: var(--line);
+  --color-ring: var(--accent);
+
+  /* Retired aesthetic tokens, mapped onto the conventional palette so no
+     surface is left unstyled while components migrate. */
+  --color-guilloche: var(--accent);
+  --color-seal: var(--danger);
+  --color-void: var(--done);
+  --color-plate: var(--canvas-raised);
+  --color-stock: var(--canvas);
+  --color-intaglio: var(--fg);
+
+  /* gitlawb.com sets Geist Mono as the interface face, not just the code face.
+     Keeping that is most of what makes the two sites read as one product. */
+  --font-sans: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, monospace;
+  --font-display: "Geist Mono", ui-monospace, monospace;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, monospace;
+  --font-prose: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --animate-shiny-text: shiny-text 8s infinite;
+  @keyframes shiny-text {
+  0%, 90%, 100% {
+    background-position: calc(-100% - var(--shiny-width)) 0;
+    }
+  30%, 60% {
+    background-position: calc(100% + var(--shiny-width)) 0;
+    }
+  }
+  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+  --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear
+;
+  @keyframes shimmer-slide {
+  to {
+    transform: translate(calc(100cqw - 100%), 0);
+    }
+  }
+  @keyframes spin-around {
+  0% {
+    transform: translateZ(0) rotate(0);
+    }
+  15%, 35% {
+    transform: translateZ(0) rotate(90deg);
+    }
+  65%, 85% {
+    transform: translateZ(0) rotate(270deg);
+    }
+  100% {
+    transform: translateZ(0) rotate(360deg);
+    }
+  }
+  --animate-aurora: aurora 8s ease-in-out infinite alternate;
+  @keyframes aurora {
+  0% {
+    background-position: 0% 50%;
+    transform: rotate(-5deg) scale(0.9);
+    }
+  25% {
+    background-position: 50% 100%;
+    transform: rotate(5deg) scale(1.1);
+    }
+  50% {
+    background-position: 100% 50%;
+    transform: rotate(-3deg) scale(0.95);
+    }
+  75% {
+    background-position: 50% 0%;
+    transform: rotate(3deg) scale(1.05);
+    }
+  100% {
+    background-position: 0% 50%;
+    transform: rotate(-5deg) scale(0.9);
+    }
+  }
+  --animate-ripple: ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite;
+  @keyframes ripple {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    }
+  50% {
+    transform: translate(-50%, -50%) scale(0.9);
+    }
+  }
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  @keyframes marquee {
+  from {
+    transform: translateX(0);
+    }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+    }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
+  --animate-gradient: gradient 8s linear infinite;
+  @keyframes gradient {
+  to {
+    background-position: var(--bg-size, 300%) 0;
+    }
+  }
+  --animate-pulse: pulse var(--duration) ease-out infinite;
+  --animate-pulse-ripple: pulse-ripple var(--duration) cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  @keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--pulse-color, oklch(from var(--bg) l c h / 0.5));
+    }
+  50% {
+    box-shadow: 0 0 0 var(--distance) var(--pulse-color, oklch(from var(--bg) l c h / 0.5));
+    }
+  }
+  @keyframes pulse-ripple {
+  0% {
+    box-shadow: 0 0 0 0 oklch(from var(--pulse-color, var(--bg)) l c h / 1);
+    }
+  100% {
+    box-shadow: 0 0 0 var(--distance) oklch(from var(--pulse-color, var(--bg)) l c h / 0);
+    }
+  }
+  --animate-rippling: rippling var(--duration) ease-out;
+  @keyframes rippling {
+  0% {
+    opacity: 1;
+    }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+    }
+  }
+  --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
+  --color-color-5: var(--color-5);
+  --color-color-4: var(--color-4);
+  --color-color-3: var(--color-3);
+  --color-color-2: var(--color-2);
+  --color-color-1: var(--color-1);
+  @keyframes rainbow {
+  0% {
+    background-position: 0%;
+    }
+  100% {
+    background-position: 200%;
+    }
+  }
+  --animate-orbit: orbit calc(var(--duration)*1s) linear infinite;
+  @keyframes orbit {
+  0% {
+    transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px)) rotate(calc(var(--angle) * -1deg));
+    }
+  100% {
+    transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px)) rotate(calc((var(--angle) * -1deg) - 360deg));
+    }
+  }}
+
+/* This reset MUST live in @layer base. Unlayered CSS wins over layered CSS in
+   the cascade regardless of specificity, so an unlayered `*` rule silently
+   overrode every border-color utility Tailwind emits — border-success,
+   border-danger and even border-transparent all resolved to the default
+   border colour, with no error anywhere. */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    border-color: var(--color-border);
+  }
 }
 
 html, body {
@@ -16,101 +328,262 @@ html, body {
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-sans, 'JetBrains Mono', monospace);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
 }
 
 #root {
   min-height: 100vh;
 }
 
+/* ── Browser surfaces ─────────────────────────────────────────────────── */
+
 ::selection {
-  background: color-mix(in oklch, var(--color-accent) 28%, transparent);
+  background: color-mix(in oklab, var(--color-accent) 32%, transparent);
 }
+
+:root {
+  caret-color: var(--color-accent);
+  accent-color: var(--color-accent);
+  scrollbar-color: var(--color-border) transparent;
+  scrollbar-width: thin;
+  color-scheme: light;
+  /* Monochrome sweep — gitlawb.com has no multi-hue gradient anywhere. */
+  --color-1: rgba(0, 0, 0, 0.85);
+  --color-2: rgba(0, 0, 0, 0.35);
+  --color-3: rgba(0, 0, 0, 0.65);
+  --color-4: rgba(0, 0, 0, 0.15);
+  --color-5: rgba(0, 0, 0, 0.5);
+}
+.dark {
+  color-scheme: dark;
+  --color-1: rgba(255, 255, 255, 0.9);
+  --color-2: rgba(255, 255, 255, 0.35);
+  --color-3: rgba(255, 255, 255, 0.7);
+  --color-4: rgba(255, 255, 255, 0.15);
+  --color-5: rgba(255, 255, 255, 0.55);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border: 2px solid var(--color-background);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+a { text-underline-offset: 0.2em; }
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Section caption used above dense field groups. Not an eyebrow: it labels a
+   data region, the way a column header labels a column. */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/* ── Markdown ─────────────────────────────────────────────────────────────
+   README/doc body copy, set to forge conventions. */
 
 .markdown-gl {
   color: var(--color-foreground);
-  font-size: 14px;
-  line-height: 1.7;
+  font-family: var(--font-prose);
+  font-size: 15px;
+  line-height: 1.6;
   word-wrap: break-word;
 }
-.markdown-gl h1, .markdown-gl h2, .markdown-gl h3, .markdown-gl h4 {
+.markdown-gl h1, .markdown-gl h2, .markdown-gl h3,
+.markdown-gl h4, .markdown-gl h5, .markdown-gl h6 {
   margin-top: 24px;
-  margin-bottom: 12px;
-  font-weight: 700;
-  line-height: 1.3;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
   color: var(--color-foreground);
 }
-.markdown-gl h1 { font-size: 1.6em; border-bottom: 1px solid var(--color-separator); padding-bottom: 8px; }
-.markdown-gl h2 { font-size: 1.3em; border-bottom: 1px solid var(--color-separator); padding-bottom: 6px; }
-.markdown-gl h3 { font-size: 1.1em; }
-.markdown-gl p, .markdown-gl ul, .markdown-gl ol, .markdown-gl dl, .markdown-gl blockquote,
-.markdown-gl pre, .markdown-gl table, .markdown-gl hr { margin-top: 0; margin-bottom: 16px; }
+.markdown-gl h1 { font-size: 2em; border-bottom: 1px solid var(--color-border); padding-bottom: 0.3em; }
+.markdown-gl h2 { font-size: 1.5em; border-bottom: 1px solid var(--color-border); padding-bottom: 0.3em; }
+.markdown-gl h3 { font-size: 1.25em; }
+.markdown-gl h4 { font-size: 1em; }
+.markdown-gl p, .markdown-gl ul, .markdown-gl ol, .markdown-gl dl,
+.markdown-gl blockquote, .markdown-gl pre, .markdown-gl table, .markdown-gl hr {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
 .markdown-gl ul, .markdown-gl ol { padding-left: 2em; }
 .markdown-gl li { margin-top: 0.25em; }
 .markdown-gl li > p { margin-bottom: 0; }
 .markdown-gl a { color: var(--color-accent); text-decoration: none; }
 .markdown-gl a:hover { text-decoration: underline; }
 .markdown-gl code {
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.875em;
-  background: var(--color-surface-secondary);
-  color: var(--color-accent);
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 85%;
+  white-space: break-spaces;
+  background: color-mix(in oklab, var(--color-muted) 18%, transparent);
+  border-radius: var(--radius-sm);
 }
 .markdown-gl pre {
   padding: 16px;
-  border-radius: 6px;
-  overflow-x: auto;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-separator);
+  border-radius: var(--radius);
 }
 .markdown-gl pre code {
   padding: 0;
   background: transparent;
-  color: var(--color-foreground);
-  border-radius: 0;
+  border: 0;
+  font-size: 100%;
+  white-space: pre;
 }
+
+/* ── Documentation fences ─────────────────────────────────────────────────
+   DocArticle wraps each fence in a <figure> carrying a header that names the
+   language and offers a copy button. The header and the code share one frame,
+   so the fence reads as a single object rather than a bar sitting on a box. */
+.doc-fence {
+  margin: 0 0 16px;
+  border: 1px solid var(--color-separator);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--color-surface-secondary);
+}
+.doc-fence-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid var(--color-separator);
+}
+.doc-fence-lang {
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+}
+.doc-fence-copy {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 120ms, background-color 120ms;
+}
+.doc-fence-copy:hover {
+  color: var(--color-foreground);
+  background: color-mix(in oklab, var(--color-muted) 14%, transparent);
+}
+.doc-fence-copy:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+/* The fence inside the figure has already been framed by the figure. */
+.markdown-gl .doc-fence pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* ── Heading anchors ──────────────────────────────────────────────────────
+   Shown on hover or keyboard focus; always reachable, never decorative
+   clutter while reading. */
+.doc-anchor {
+  margin-left: 0.4em;
+  color: var(--color-muted);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.markdown-gl h2:hover .doc-anchor,
+.markdown-gl h3:hover .doc-anchor,
+.doc-anchor:focus-visible {
+  opacity: 1;
+}
+.doc-anchor:hover { color: var(--color-accent); }
 .markdown-gl blockquote {
   padding: 0 1em;
-  border-left: 3px solid var(--color-separator);
   color: var(--color-muted);
+  border-left: 0.25em solid var(--color-border);
 }
 .markdown-gl table {
   display: block;
-  overflow-x: auto;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
   border-collapse: collapse;
-  width: 100%;
 }
 .markdown-gl table th, .markdown-gl table td {
-  padding: 8px 12px;
+  padding: 6px 13px;
   border: 1px solid var(--color-border);
-  text-align: left;
 }
-.markdown-gl table th {
-  font-weight: 600;
-  background: var(--color-surface-secondary);
-}
-.markdown-gl tr:nth-child(even) { background: var(--color-surface); }
+.markdown-gl table th { font-weight: 600; background: var(--color-surface-secondary); }
+.markdown-gl table tr:nth-child(2n) { background: var(--color-surface-secondary); }
 .markdown-gl hr {
-  height: 0;
+  height: 0.25em;
+  padding: 0;
+  margin: 24px 0;
+  background: var(--color-separator);
   border: 0;
-  border-top: 1px solid var(--color-separator);
 }
 .markdown-gl img { max-width: 100%; box-sizing: border-box; }
 .markdown-gl .task-list-item { list-style: none; }
 .markdown-gl .task-list-item input { margin: 0 0.2em 0.25em -1.4em; vertical-align: middle; }
 
-.tok-kw { color: #60a5fa; }
-.tok-str { color: #4ade80; }
-.tok-type { color: #facc15; }
-.tok-num { color: #facc15; }
-.tok-cmt { color: #777778; font-style: italic; }
-.tok-fn { color: #f0f0f1; }
-.tok-prop { color: #d0d0d1; }
-.tok-punc { color: #909091; }
+/* ── Syntax tokens ────────────────────────────────────────────────────────
+   Both themes specified. The pre-redesign build shipped a single hardcoded
+   dark set, which painted near-white glyphs onto the light canvas. */
+
+.tok-kw   { color: #cf222e; }
+.tok-str  { color: #0a3069; }
+.tok-type { color: #953800; }
+.tok-num  { color: #0550ae; }
+.tok-cmt  { color: #59636e; }
+.tok-fn   { color: #8250df; }
+.tok-prop { color: #0550ae; }
+.tok-punc { color: #1f2328; }
+
+.dark .tok-kw   { color: #ff7b72; }
+.dark .tok-str  { color: #a5d6ff; }
+.dark .tok-type { color: #ffa657; }
+.dark .tok-num  { color: #79c0ff; }
+.dark .tok-cmt  { color: #9198a1; }
+.dark .tok-fn   { color: #d2a8ff; }
+.dark .tok-prop { color: #79c0ff; }
+.dark .tok-punc { color: #f0f6fc; }
+/* Theme switch (Magic UI AnimatedThemeToggler): the component drives the
+   clip-path wipe itself, so the browser's default cross-fade on these
+   pseudo-elements is disabled to keep the two from fighting. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
