@@ -88,7 +88,9 @@ function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
             {peerHost(peer.http_url)}
           </a>
         ) : (
-          <span className="md:hidden text-[11px] text-muted truncate">{peerHost(peer.http_url)}</span>
+          <span className="md:hidden text-[11px] text-muted truncate" title="rejected URL scheme">
+            {peer.http_url}
+          </span>
         )}
       </div>
 
@@ -103,7 +105,9 @@ function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
           {peerHost(peer.http_url)} ↗
         </a>
       ) : (
-        <span className="hidden md:block text-[12px] text-muted truncate">{peerHost(peer.http_url)}</span>
+        <span className="hidden md:block text-[12px] text-muted truncate" title="rejected URL scheme">
+          {peer.http_url}
+        </span>
       )}
 
       {/* Last seen */}
