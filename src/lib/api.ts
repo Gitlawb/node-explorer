@@ -449,7 +449,8 @@ export function peerHost(url: string): string {
  */
 export function isHttpUrl(url: string): boolean {
   try {
-    return new URL(url).protocol === 'https:' || new URL(url).protocol === 'http:';
+    const { protocol } = new URL(url);
+    return protocol === 'https:' || protocol === 'http:';
   } catch {
     return false;
   }

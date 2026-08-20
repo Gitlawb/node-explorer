@@ -15,6 +15,7 @@ import {
   blobUrl,
   MAX_INLINE_BYTES,
   peerHost,
+  isHttpUrl,
   shortRefName,
   parseEventRepo,
   taskTitle,
@@ -34,6 +35,25 @@ describe('peerHost', () => {
 
   it('degrades gracefully on unparseable input', () => {
     expect(peerHost('not a url')).toBe('not a url');
+  });
+});
+
+describe('isHttpUrl', () => {
+  it('accepts https and http URLs', () => {
+    expect(isHttpUrl('https://node2.gitlawb.com')).toBe(true);
+    expect(isHttpUrl('http://10.0.0.5:7545/path')).toBe(true);
+  });
+
+  it('rejects javascript: URLs, including case and whitespace variants', () => {
+    expect(isHttpUrl('javascript:alert(1)')).toBe(false);
+    expect(isHttpUrl(' javascript:alert(1)')).toBe(false);
+    expect(isHttpUrl('JaVaScRiPt:alert(1)')).toBe(false);
+  });
+
+  it('rejects other unsafe or non-http schemes', () => {
+    expect(isHttpUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+    expect(isHttpUrl('vbscript:msgbox(1)')).toBe(false);
+    expect(isHttpUrl('//evil.com')).toBe(false);
   });
 });
 
