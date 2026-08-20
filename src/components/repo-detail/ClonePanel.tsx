@@ -37,14 +37,24 @@ export function ClonePanel({ cloneUrl, gitlawbUrl, onNavigate }: ClonePanelProps
         </code>
       </MagicCard>
 
-      {gitlawbUrl && isHttpUrl(cloneUrl) && (
+      {gitlawbUrl && (
         <p className="m-0 mt-2 text-[12px] leading-relaxed text-muted">
           The <code className="font-mono">gitlawb://</code> scheme requires the{' '}
           <code className="font-mono">git-remote-gitlawb</code> helper. Plain{' '}
-          <code className="font-mono">git</code> can clone the same repository over{' '}
-          <a href={cloneUrl} target="_blank" rel="noopener" className="text-accent hover:underline">
-            https
-          </a>
+          <code className="font-mono">git</code> can clone the same repository
+          {isHttpUrl(cloneUrl) && (
+            <>
+              {' '}over{' '}
+              <a
+                href={cloneUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:underline"
+              >
+                https
+              </a>
+            </>
+          )}
           .
         </p>
       )}
