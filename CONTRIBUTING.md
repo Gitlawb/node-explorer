@@ -9,11 +9,11 @@ the conventions the codebase follows, and what to expect from the review process
 2. Install dependencies and start the dev server:
 
    ```sh
-   npm install
-   npm run dev
+   bun install
+   bun run dev
    ```
 
-   Requires Node.js 20+. The dev server proxies API calls to
+   Requires [Bun](https://bun.sh) 1.1+. The dev server proxies API calls to
    `https://node.gitlawb.com` — no backend setup needed.
 
 3. Create a branch off `main` for your change:
@@ -27,12 +27,12 @@ the conventions the codebase follows, and what to expect from the review process
 Run the full check suite locally — CI runs the same three commands:
 
 ```sh
-npm run lint
-npm test
-npm run build
+bun run lint
+bun run test
+bun run build
 ```
 
-All three must pass. `npm run build` includes the TypeScript project build
+All three must pass. `bun run build` includes the TypeScript project build
 (`tsc -b`), so type errors fail there.
 
 ### Editing the security headers

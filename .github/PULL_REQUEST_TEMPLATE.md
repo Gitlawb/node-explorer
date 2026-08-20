@@ -24,8 +24,8 @@
 
 ## Checklist
 
-- [ ] `npm run lint` passes
-- [ ] `npm test` passes
-- [ ] `npm run build` passes (includes typecheck)
+- [ ] `bun run lint` passes
+- [ ] `bun run test` passes
+- [ ] `bun run build` passes (includes typecheck)
 - [ ] New logic in `src/lib/` has colocated unit tests
 - [ ] I kept the change focused on a single concern
