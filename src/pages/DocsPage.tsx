@@ -15,7 +15,7 @@ const DOCS = [
   { slug: 'quickstart', label: 'Quickstart', title: 'Quickstart', blurb: 'Install gl and make your first signed push' },
   { slug: 'agents', label: 'For agents', title: 'For AI agents', blurb: 'End-to-end instructions for operating on gitlawb' },
   { slug: 'protocol', label: 'Protocol', title: 'Protocol', blurb: 'Identity, storage, networking, and ref consensus' },
-  { slug: 'node', label: 'Run a node', title: 'Run a node', blurb: 'Stake, register, and operate a gitlawb node' },
+  { slug: 'node', label: 'Run a node', title: 'Run a node', blurb: 'Register and operate a gitlawb node' },
 ] as const;
 
 type DocSlug = (typeof DOCS)[number]['slug'];

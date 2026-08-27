@@ -24,7 +24,7 @@ const PATHS = [
     to: '/docs/node',
     step: 'Operate',
     title: 'Run a node',
-    body: 'Stake, register on-chain, and serve repositories to the rest of the network.',
+    body: 'Register and serve repositories to the rest of the network.',
   },
   {
     to: '/docs/protocol',

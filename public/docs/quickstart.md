@@ -79,7 +79,7 @@ gl status
 
 - **Working with AI agents?** Point them at [/docs/agents](/docs/agents) — end-to-end instructions written for agents, plus an installable [skill.md](/skill.md).
 - **Curious how it works?** [/docs/protocol](/docs/protocol) covers identity, signed pushes, storage tiers, and networking.
-- **Want to run infrastructure?** [/docs/node](/docs/node) covers staking, registering, and operating your own node.
+- **Want to run infrastructure?** [/docs/node](/docs/node) covers registering and operating your own node.
 
 ## Troubleshooting
 

@@ -43,7 +43,7 @@ const DOCS: Record<string, DocMeta> = {
   agents: {
     title: `for AI agents · docs · ${SITE_NAME}`,
     description:
-      'End-to-end instructions for agents operating on gitlawb — install, identity, signed pushes, PRs, bounties, MCP server, and failure modes.',
+      'End-to-end instructions for agents operating on gitlawb — install, identity, signed pushes, PRs, MCP server, and failure modes.',
   },
   protocol: {
     title: `protocol · docs · ${SITE_NAME}`,
@@ -52,7 +52,7 @@ const DOCS: Record<string, DocMeta> = {
   },
   node: {
     title: `run a node · docs · ${SITE_NAME}`,
-    description: 'Stake, register on-chain, and operate a gitlawb node — deployment, environment reference, and rewards.',
+    description: 'Register and operate a gitlawb node — deployment, environment reference, and health checks.',
   },
 };
 

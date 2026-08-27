@@ -1,10 +1,11 @@
 # Running a gitlawb node
 
-Step-by-step guide to staking $GITLAWB, registering your node on-chain, and earning protocol fees as a PoS operator. The reference node implementation lives at [Gitlawb/node](https://github.com/Gitlawb/node).
+Step-by-step guide to registering and operating a gitlawb node. The reference node implementation lives at [Gitlawb/node](https://github.com/Gitlawb/node).
+
+Running a node requires no token. Write-node access lock is not live on Base yet. The live network does not require a lock today.
 
 ## Prerequisites
 
-- A wallet with at least **10,000 $GITLAWB** (minimum stake) plus a small amount of ETH on Base for gas
 - Docker or Rust 1.91+ (for running the node process)
 - Postgres (the node's index database)
 - A public HTTP URL — a VPS, Fly.io app, or anything reachable. A Fly.io config ships in the repo at `infra/fly/fly.toml`
@@ -27,26 +28,9 @@ gl identity show
 # → did:key:z6Mk...
 ```
 
-This is your **node DID** — distinct from your Ethereum wallet.
+This is your **node DID**. Peers address your node by it; the `GITLAWB_KEY` variable below points at its PEM file.
 
-## 3. Register your node on-chain
-
-This stakes $GITLAWB and links your node DID to your operator wallet:
-
-```sh
-export GITLAWB_OPERATOR_PRIVATE_KEY=0xYOUR_KEY
-export GITLAWB_TOKEN=0x5F980Dcfc4c0fa3911554cf5ab288ed0eb13DBa3
-export GITLAWB_CONTRACT_NODE_STAKING=0xNODE_STAKING_ADDR
-export GITLAWB_CHAIN_RPC_URL=https://mainnet.base.org
-
-gl node register \
-  --stake 10000 \
-  --http-url https://my-node.example.com
-```
-
-What this does: checks your $GITLAWB balance → `token.approve(NodeStaking, 10000e18)` if needed → `NodeStaking.registerNode(didHash, httpUrl, 10000e18)` → transfers 10,000 $GITLAWB into escrow.
-
-## 4. Run the node
+## 3. Run the node
 
 **Docker:**
 
@@ -58,10 +42,6 @@ docker run -d \
   -v gitlawb-data:/data \
   -e DATABASE_URL=postgresql://user:pass@host/gitlawb \
   -e GITLAWB_PUBLIC_URL=https://my-node.example.com \
-  -e GITLAWB_OPERATOR_PRIVATE_KEY=$GITLAWB_OPERATOR_PRIVATE_KEY \
-  -e GITLAWB_CONTRACT_NODE_STAKING=$GITLAWB_CONTRACT_NODE_STAKING \
-  -e GITLAWB_CHAIN_RPC_URL=$GITLAWB_CHAIN_RPC_URL \
-  -e GITLAWB_OPERATOR_STRICT_MODE=true \
   ghcr.io/gitlawb/node:latest
 ```
 
@@ -72,14 +52,6 @@ docker run -d \
 The node auto-creates its database schema on first connect — no manual migration step.
 
 ### Environment reference
-
-Required for on-chain PoS mode:
-
-| Variable | Purpose |
-|---|---|
-| `GITLAWB_CONTRACT_NODE_STAKING` | staking contract address |
-| `GITLAWB_OPERATOR_PRIVATE_KEY` | key that posts heartbeats |
-| `GITLAWB_CHAIN_RPC_URL` | Base RPC URL (default Sepolia) |
 
 Core node settings:
 
@@ -93,8 +65,8 @@ Core node settings:
 | `GITLAWB_KEY` | path to the node identity PEM |
 | `GITLAWB_BOOTSTRAP_PEERS` | comma-separated peer node URLs |
 | `GITLAWB_MAX_PACK_BYTES` | max accepted pack size |
-| `GITLAWB_OPERATOR_STRICT_MODE` | refuse to start unless registered + active |
-| `GITLAWB_HEARTBEAT_INTERVAL_HOURS` | heartbeat cadence (default 20, must be < 24) |
+
+Leave `GITLAWB_OPERATOR_STRICT_MODE` unset: it refuses to start unless the node is registered with an on-chain operator contract, and that contract is not live on Base mainnet. On-chain operator registration exists only as a testnet (Base Sepolia) deployment and is documented in the node repo; it is not required to run a node on the live network.
 
 Anti-spam (iCaptcha) — strongly recommended for public nodes:
 
@@ -107,33 +79,18 @@ Anti-spam (iCaptcha) — strongly recommended for public nodes:
 
 Proofs are verified offline against the pubkey, bound to the agent DID, and consumed once. Roll out with `shadow` first, watch the logs, then switch to `enforce`. Pin `ICAPTCHA_PUBKEY` in production.
 
-## 5. Verify
+## 4. Verify
 
 ```sh
-gl node onchain-status
+curl https://my-node.example.com/health
+# → {"status":"ok"}
 ```
 
-Expect your operator wallet, stake, HTTP URL, a recent heartbeat, and `Currently active: true`. Node logs should show `operator heartbeat loop starting` and a heartbeat tx shortly after startup. Peers will ping your `GITLAWB_PUBLIC_URL/health` — make sure it answers `{"status":"ok"}`.
-
-## 6. Earn rewards
-
-The heartbeat loop runs every 20 hours. While you stay active:
-
-- Every Sunday the `FeeDistributor` distributes accumulated fees
-- 75% of the weekly pot is split across all active nodes, pro-rata by stake
-- Your share accrues as `pendingRewards` on-chain — claim anytime without unstaking: `gl node claim`
-
-## 7. Unstake
-
-7-day cooldown, two steps:
+Peers will ping your `GITLAWB_PUBLIC_URL/health` — make sure it answers `{"status":"ok"}`. Point `gl` at your node to confirm it serves the API:
 
 ```sh
-gl node unstake-request   # starts the 7-day timer
-# ...wait 7 days...
-gl node unstake           # returns stake + pending rewards
+gl --node https://my-node.example.com node info
 ```
-
-Your node keeps earning during the cooldown if it keeps heartbeating.
 
 ## Hardening: owner-only push
 
@@ -151,18 +108,14 @@ GITLAWB_ENFORCE_OWNER_PUSH=true
 
 | Concern | Recommendation |
 |---|---|
-| Heartbeat gas | ~$0.03/month on Base L2 — negligible |
-| Missed heartbeats | after 3 days without one you're excluded from rewards until you beat again |
-| Operator key | dedicated wallet, small ETH balance, not your main treasury |
-| Monitoring | watch `lastHeartbeat` on-chain; alert if > 22h |
 | Public URL | must resolve and serve `/health` — peers will ping it |
+| Node key | back up the identity PEM; losing it means a new node DID |
+| Database | back up Postgres; repos on disk are rebuildable from peers only if peers hold them |
+| Monitoring | alert if `/health` stops answering or the ref-update feed stops advancing |
 | Spam | run iCaptcha in `enforce` with a pinned pubkey |
 
 ## Troubleshooting
 
-- **"insufficient $GITLAWB balance"** — fund the operator wallet with at least 10,000 $GITLAWB.
-- **"strict-mode operator check failed" on start** — `gl node register` first, or unset `GITLAWB_OPERATOR_STRICT_MODE`.
-- **Rewards are 0 after a week** — `gl node onchain-status`; if `currentlyActive: false`, check the heartbeat loop in your node logs.
-- **Rotating the operator wallet** — requires unstake → re-register; no in-place rotation in v1.
-
-See [ECONOMICS.md](https://github.com/Gitlawb/node/blob/main/ECONOMICS.md) for the full reward math.
+- **"strict-mode operator check failed" on start** — unset `GITLAWB_OPERATOR_STRICT_MODE`; on-chain operator registration is not live on Base mainnet.
+- **Peers don't see my repos** — check `GITLAWB_PUBLIC_URL` is reachable from the internet and `GITLAWB_BOOTSTRAP_PEERS` lists at least one live node.
+- **`/health` answers but pushes fail** — confirm `DATABASE_URL` is writable and `GITLAWB_REPOS_DIR` is on a persistent volume.
