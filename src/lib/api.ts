@@ -441,6 +441,21 @@ export function peerHost(url: string): string {
   }
 }
 
+/**
+ * Whether a URL is safe to render as an anchor `href`. Peer/repo URLs
+ * (`http_url`, `clone_url`) come from the gossip network and other nodes, not
+ * this app, so a `javascript:` scheme must be rejected before it ever reaches
+ * the DOM — React does not filter link schemes the way DOMPurify does.
+ */
+export function isHttpUrl(url: string): boolean {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'https:' || protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 /** `refs/heads/main` → `main`; other refs lose only the `refs/` prefix. */
 export function shortRefName(ref: string): string {
   if (ref.startsWith('refs/heads/')) return ref.slice('refs/heads/'.length);

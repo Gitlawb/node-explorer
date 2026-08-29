@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '../register/controls';
 import { cn } from '../../lib/utils';
 import type { ApiPeer } from '../../lib/api';
-import { pingPeer, peerHost, shortDid, timeAgo } from '../../lib/api';
+import { pingPeer, peerHost, isHttpUrl, shortDid, timeAgo } from '../../lib/api';
 import { MicroLabel } from '../ui/MicroLabel';
 import { Skeleton } from '../ui/Skeleton';
 import { Pill } from '../ui/Pill';
@@ -52,6 +52,10 @@ function PingCell({ did }: { did: string }) {
 }
 
 function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
+  // Gossiped by other nodes, not this app — a `javascript:` http_url must not
+  // reach an anchor href.
+  const safeUrl = isHttpUrl(peer.http_url) ? peer.http_url : undefined;
+
   return (
     <li
       className="grid grid-cols-[16px_minmax(0,1fr)_70px] md:grid-cols-[24px_minmax(0,4fr)_minmax(0,3fr)_120px_90px]
@@ -74,25 +78,37 @@ function PeerRow({ peer, index }: { peer: ApiPeer; index: number }) {
           {shortDid(peer.did)}
         </span>
         <CopyButton value={peer.did} label="did" />
-        <a
-          href={peer.http_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="md:hidden text-[11px] text-muted truncate"
-        >
-          {peerHost(peer.http_url)}
-        </a>
+        {safeUrl ? (
+          <a
+            href={safeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="md:hidden text-[11px] text-muted truncate"
+          >
+            {peerHost(peer.http_url)}
+          </a>
+        ) : (
+          <span className="md:hidden text-[11px] text-muted truncate" title="rejected URL scheme">
+            {peer.http_url}
+          </span>
+        )}
       </div>
 
       {/* Host */}
-      <a
-        href={peer.http_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hidden md:block text-[12px] text-muted truncate"
-      >
-        {peerHost(peer.http_url)} ↗
-      </a>
+      {safeUrl ? (
+        <a
+          href={safeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden md:block text-[12px] text-muted truncate"
+        >
+          {peerHost(peer.http_url)} ↗
+        </a>
+      ) : (
+        <span className="hidden md:block text-[12px] text-muted truncate" title="rejected URL scheme">
+          {peer.http_url}
+        </span>
+      )}
 
       {/* Last seen */}
       <span className="hidden md:block text-[12px] text-muted tabular-nums whitespace-nowrap">

@@ -23,13 +23,13 @@ push events, straight from the node's REST API.
 
 ## Quick start
 
-Requires Node.js 20+.
+Requires [Bun](https://bun.sh) 1.1+.
 
 ```sh
 git clone https://github.com/Gitlawb/node-explorer.git
 cd node-explorer
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 The dev server proxies `/api/*` and `/node-info` to `https://node.gitlawb.com`
@@ -41,12 +41,12 @@ through a same-origin proxy. To point at a different node, change the proxy
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Vite dev server with API proxy |
-| `npm run build` | Typecheck (`tsc -b`) + production build |
-| `npm test` | Run the unit test suite once (Vitest) |
-| `npm run test:watch` | Vitest in watch mode |
-| `npm run lint` | ESLint |
-| `npm run preview` | Serve the production build locally |
+| `bun run dev` | Vite dev server with API proxy |
+| `bun run build` | Typecheck (`tsc -b`) + production build |
+| `bun run test` | Run the unit test suite once (Vitest) |
+| `bun run test:watch` | Vitest in watch mode |
+| `bun run lint` | ESLint |
+| `bun run preview` | Serve the production build locally |
 
 ## Data source
 
@@ -67,7 +67,7 @@ opt-in via an env flag (older nodes silently ignore unknown params, which would 
 search appear to return everything):
 
 ```sh
-VITE_SERVER_SEARCH=true npm run dev
+VITE_SERVER_SEARCH=true bun run dev
 ```
 
 Until the flag is on, search and sort apply to the currently loaded page and the UI
@@ -99,8 +99,8 @@ parsing, language detection, API mapping/classification, TOC extraction) is cove
 network functions are tested against a stubbed `fetch`.
 
 ```sh
-npm test              # single run
-npm run test:watch    # watch mode
+bun run test          # single run
+bun run test:watch    # watch mode
 ```
 
 Tests live next to the modules they cover (`src/lib/foo.ts` → `src/lib/foo.test.ts`).

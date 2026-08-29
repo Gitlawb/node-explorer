@@ -9,11 +9,11 @@ the conventions the codebase follows, and what to expect from the review process
 2. Install dependencies and start the dev server:
 
    ```sh
-   npm install
-   npm run dev
+   bun install
+   bun run dev
    ```
 
-   Requires Node.js 20+. The dev server proxies API calls to
+   Requires [Bun](https://bun.sh) 1.1+. The dev server proxies API calls to
    `https://node.gitlawb.com` — no backend setup needed.
 
 3. Create a branch off `main` for your change:
@@ -27,13 +27,31 @@ the conventions the codebase follows, and what to expect from the review process
 Run the full check suite locally — CI runs the same three commands:
 
 ```sh
-npm run lint
-npm test
-npm run build
+bun run lint
+bun run test
+bun run build
 ```
 
-All three must pass. `npm run build` includes the TypeScript project build
+All three must pass. `bun run build` includes the TypeScript project build
 (`tsc -b`), so type errors fail there.
+
+### Editing the security headers
+
+`vercel.json`'s `headers` block is strict JSON — it can't carry inline
+comments — so these two couplings are documented here instead:
+
+- **The CSP `script-src` hash and the inline theme script.** `index.html`'s
+  anti-FOUC theme script is allowlisted by sha256 hash rather than
+  `'unsafe-inline'`. Changing that script, even its whitespace, changes the
+  hash, and a stale hash in `vercel.json` makes the script silently stop
+  running under CSP (symptom: a theme flash on load, stored preference
+  ignored). Recompute the hash and update `script-src` whenever the script
+  changes.
+- **The CSP `connect-src` allowlist and `FEDERATED_NODES`.** `src/lib/nodes.ts`
+  lists every node host the app talks to; `vercel.json`'s `connect-src` (and
+  its per-node proxy `rewrites`) must list the same hosts. There's no CSP in
+  dev, so a host added to one but not the other passes locally and is
+  silently blocked in production.
 
 ## What makes a good PR
 

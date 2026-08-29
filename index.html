@@ -28,7 +28,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800;900&family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <!-- Anti-FOUC: set theme before first paint. Stored choice wins, then the
          OS preference, then dark — which is what this audience runs and what
-         the site shipped before. -->
+         the site shipped before.
+         CSP allowlists this script by sha256 hash (vercel.json script-src) —
+         editing so much as its whitespace requires recomputing that hash or
+         the script silently stops running under CSP. -->
     <script>
       (function () {
         var stored = localStorage.getItem('gl-theme');
